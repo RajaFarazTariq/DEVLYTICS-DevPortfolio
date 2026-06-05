@@ -28,7 +28,7 @@ export const projects: Project[] = [
     description:
       'A modern recruitment platform that streamlines hiring workflows with AI-powered candidate screening, resume analysis, intelligent matching, and real-time recruitment management. Recruiters manage applicants, track hiring pipelines, and automate candidate evaluations through advanced AI integrations — all behind a premium, fully responsive UI.',
     tech: ['React', 'Next.js', 'TypeScript', 'PostgreSQL', 'AI Model APIs'],
-    image: '/assets/projects/smarthire-ai.png',
+    image: '/assets/projects/smarthire-ai.PNG',
     accent: 'from-accent-500 to-pink-500',
     links: { github: 'https://github.com/RajaFarazTariq' },
   },
