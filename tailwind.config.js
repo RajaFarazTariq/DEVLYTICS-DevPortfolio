@@ -1,6 +1,11 @@
 /** @type {import('tailwindcss').Config} */
 export default {
-  content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
+  // Content JSON is scanned for class names; the admin panel has its own config.
+  content: [
+    './index.html',
+    './src/**/*.{js,ts,jsx,tsx,json}',
+    '!./src/admin/**',
+  ],
   darkMode: 'class',
   theme: {
     extend: {

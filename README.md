@@ -57,7 +57,39 @@ src/
     └── sections/        # Hero, About, Skills, Projects, Experience, Contact
 ```
 
-All content lives in `src/data/*` — edit those files to update the site.
+Editable content (profile, projects, skills, experience & education) lives in `src/content/*.json`
+and is loaded by the typed modules in `src/data/*`. Edit it from the admin panel (below) or by hand.
+
+---
+
+## 🔐 Admin panel
+
+A separate page at **`/admin`** for adding, editing, reordering and deleting portfolio content
+and project images — no code changes needed. It never loads on the public site.
+
+**How it works:** there is no server or database. The admin signs in with a GitHub token, reads
+`src/content/*.json` and `public/assets/projects/` from the `main` branch, and publishes all
+edits as **one commit**. Vercel redeploys on the push.
+
+**Sign in:** create a [fine-grained token](https://github.com/settings/personal-access-tokens/new)
+with *Only select repositories → DEVLYTICS-DevPortfolio*, **Contents: Read and write**, and
+optionally **Deployments: Read-only** (shows deploy status). Paste it on `/admin`.
+
+**Safeguards**
+
+- Only the GitHub accounts in `src/admin/config.ts` (`allowedLogins`) can sign in.
+- The token is kept in `sessionStorage` only, sent only to `api.github.com`, and cleared after
+  30 minutes of inactivity or when the tab closes.
+- Every edit is validated before it can be applied or published: required fields, unique IDs,
+  http(s)-only links, existing images, skill levels 0–100, and no duplicate list entries.
+- Publishing refuses to overwrite: if the content files changed on GitHub after loading, or the
+  branch moved mid-publish, nothing is written.
+- Images still used by a project can't be deleted. Uploads are checked by file signature,
+  limited to PNG/JPG/WebP/GIF/AVIF, and capped at 4 MB.
+- `vercel.json` sends `noindex`, `DENY` framing and a strict CSP for `/admin`.
+
+**Local:** `npm run dev`, then open `http://localhost:5173/admin/`. In dev only, *Local preview*
+opens the editor on this checkout's content without signing in (publishing disabled).
 
 ---
 

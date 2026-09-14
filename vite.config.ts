@@ -17,6 +17,11 @@ export default defineConfig({
     target: 'es2020',
     sourcemap: false,
     rollupOptions: {
+      // The admin panel is a separate page (/admin/) so the public site never loads its code.
+      input: {
+        main: path.resolve(process.cwd(), 'index.html'),
+        admin: path.resolve(process.cwd(), 'admin/index.html'),
+      },
       output: {
         manualChunks: {
           three: ['three', '@react-three/fiber', '@react-three/drei'],
