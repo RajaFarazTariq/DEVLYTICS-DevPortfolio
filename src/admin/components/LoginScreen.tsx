@@ -96,7 +96,7 @@ export function LoginScreen({
             <div className="space-y-2">
               <button
                 type="button"
-                className="adm-btn w-full bg-white py-3 text-[15px] font-semibold text-ink-950 shadow-soft hover:bg-ink-100"
+                className="adm-btn adm-btn-lg w-full bg-white font-semibold text-ink-950 shadow-soft hover:bg-ink-100"
                 disabled={!appReady || busy || redirecting}
                 onClick={() => signIn(false)}
               >

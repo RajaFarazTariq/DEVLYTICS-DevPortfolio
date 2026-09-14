@@ -10,6 +10,7 @@ import {
   Badge,
   Drawer,
   EmptyState,
+  FormSection,
   IssueList,
   LineListEditor,
   ReorderButtons,
@@ -20,6 +21,9 @@ import {
   TextField,
   moveItem,
 } from '@/admin/components/ui';
+import { cn } from '@/utils/cn';
+
+const ROW_COLUMNS = 'md:grid-cols-[minmax(0,1fr)_10rem_11rem_9.5rem]';
 
 export function ExperienceSection({
   items,
@@ -60,11 +64,15 @@ export function ExperienceSection({
       onConfirm: () => onChange(items.filter((_, k) => k !== i)),
     });
 
+  const workCount = items.filter((e) => e.type === 'work').length;
+
   return (
     <div>
       <SectionHeader
+        eyebrow="Content"
         title="Experience & Education"
         description="Timeline cards, shown in this order. Work and education entries share one list."
+        meta={<Badge>{workCount} work · {items.length - workCount} education</Badge>}
         actions={
           <>
             <button type="button" className="adm-btn-secondary" onClick={() => add('education')}>
@@ -78,40 +86,51 @@ export function ExperienceSection({
       />
 
       {items.length === 0 ? (
-        <EmptyState title="Nothing here yet" description="Add your work experience or education." />
+        <EmptyState icon={Briefcase} title="Nothing here yet" description="Add your work experience or education." />
       ) : (
-        <div className="space-y-3">
+        <div className="adm-card overflow-hidden">
+          <div className={`adm-table-head md:grid md:gap-4 ${ROW_COLUMNS}`}>
+            <span>Entry</span>
+            <span>Period</span>
+            <span>Location</span>
+            <span className="text-right">Actions</span>
+          </div>
           {items.map((e, i) => {
             const Icon = e.type === 'education' ? GraduationCap : Briefcase;
             const count = issues.filter((x) => x.index === i).length;
             return (
-              <article key={`${e.id}-${i}`} className="adm-card flex flex-wrap items-center gap-4 p-4 sm:flex-nowrap">
-                <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-cyan-400/25 bg-white/[0.03]">
-                  <Icon className="h-5 w-5 text-cyan-300" />
-                </span>
-                <button type="button" onClick={() => editor.open(i, e)} className="min-w-0 flex-1 text-left">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Badge tone={e.type === 'education' ? 'neutral' : 'accent'}>{e.type === 'education' ? 'Education' : 'Work'}</Badge>
-                    <span className="font-mono text-[11px] uppercase tracking-wider text-cyan-300/90">{e.period}</span>
-                    {count > 0 && <Badge tone="danger">{count} issue{count > 1 ? 's' : ''}</Badge>}
-                  </div>
-                  <h3 className="mt-1 truncate font-display font-semibold text-ink-50">{e.role || 'Untitled'}</h3>
-                  <p className="flex flex-wrap items-center gap-x-3 text-sm text-ink-400">
-                    {e.company}
-                    {e.location && (
-                      <span className="inline-flex items-center gap-1 text-xs text-ink-500">
-                        <MapPin className="h-3 w-3" /> {e.location}
-                      </span>
-                    )}
-                  </p>
+              <div key={`${e.id}-${i}`} className={cn('adm-table-row grid items-center gap-3 md:gap-4', ROW_COLUMNS)}>
+                <button type="button" onClick={() => editor.open(i, e)} className="flex min-w-0 items-center gap-3 text-left">
+                  <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-cyan-400/20 bg-cyan-500/[0.06]">
+                    <Icon className="h-4 w-4 text-cyan-300" />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="flex flex-wrap items-center gap-2">
+                      <span className="truncate font-display text-[15px] font-semibold text-ink-50">{e.role || 'Untitled'}</span>
+                      <Badge tone={e.type === 'education' ? 'neutral' : 'accent'}>{e.type === 'education' ? 'Education' : 'Work'}</Badge>
+                      {count > 0 && <Badge tone="danger">{count} issue{count > 1 ? 's' : ''}</Badge>}
+                    </span>
+                    <span className="mt-0.5 block truncate text-sm text-ink-400">{e.company}</span>
+                  </span>
                 </button>
-                <div className="flex items-center">
+                <span className="font-mono text-[11px] uppercase tracking-wider text-cyan-300/90 max-md:pl-[3.25rem]">{e.period}</span>
+                <span className="min-w-0 text-sm text-ink-400 max-md:hidden">
+                  {e.location ? (
+                    <span className="inline-flex max-w-full items-center gap-1.5">
+                      <MapPin className="h-3.5 w-3.5 shrink-0" />
+                      <span className="truncate">{e.location}</span>
+                    </span>
+                  ) : (
+                    <span className="text-ink-600">—</span>
+                  )}
+                </span>
+                <div className="flex items-center justify-end gap-1 max-md:-mt-1">
                   <ReorderButtons index={i} length={items.length} label={e.role || `entry ${i + 1}`} onMove={(a, b) => onChange(moveItem(items, a, b))} onDelete={() => remove(i)} />
-                  <button type="button" className="adm-icon-btn" onClick={() => editor.open(i, e)} aria-label={`Edit ${e.role}`}>
+                  <button type="button" className="adm-icon-btn" onClick={() => editor.open(i, e)} aria-label={`Edit ${e.role}`} title="Edit">
                     <Pencil className="h-4 w-4" />
                   </button>
                 </div>
-              </article>
+              </div>
             );
           })}
         </div>
@@ -172,70 +191,74 @@ function ExperienceForm({
     <>
       {issues.length > 0 && <IssueList messages={issues.map((i) => i.message)} />}
 
-      <div className="grid gap-5 sm:grid-cols-2">
-        <SelectField
-          label="Type"
-          value={value.type}
-          options={[
-            { value: 'work', label: 'Work experience' },
-            { value: 'education', label: 'Education' },
-          ]}
-          onChange={(v) => set('type', v)}
-          error={errors.type}
-        />
+      <FormSection title="Details">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <SelectField
+            label="Type"
+            value={value.type}
+            options={[
+              { value: 'work', label: 'Work experience' },
+              { value: 'education', label: 'Education' },
+            ]}
+            onChange={(v) => set('type', v)}
+            error={errors.type}
+          />
+          <TextField
+            label="ID"
+            value={value.id}
+            onChange={(id) => {
+              setIdTouched(true);
+              set('id', id);
+            }}
+            error={errors.id}
+            inputClassName="font-mono"
+          />
+        </div>
         <TextField
-          label="ID"
-          value={value.id}
-          onChange={(id) => {
-            setIdTouched(true);
-            set('id', id);
-          }}
-          error={errors.id}
-          className="font-mono"
+          label={isEducation ? 'Degree / programme' : 'Role'}
+          value={value.role}
+          autoFocus={isNew}
+          onChange={(role) =>
+            onChange({ ...value, role, id: idTouched ? value.id : uniqueSlug(slugify(role) || value.id, otherIds) })
+          }
+          error={errors.role}
+          max={LIMITS.short}
         />
-      </div>
-      <TextField
-        label={isEducation ? 'Degree / programme' : 'Role'}
-        value={value.role}
-        autoFocus={isNew}
-        onChange={(role) =>
-          onChange({ ...value, role, id: idTouched ? value.id : uniqueSlug(slugify(role) || value.id, otherIds) })
-        }
-        error={errors.role}
-        max={LIMITS.short}
-      />
-      <div className="grid gap-5 sm:grid-cols-2">
-        <TextField label={isEducation ? 'Institution' : 'Company'} value={value.company} onChange={(v) => set('company', v)} error={errors.company} />
-        <TextField label="Period" value={value.period} onChange={(v) => set('period', v)} error={errors.period} placeholder="2022 — Present" />
-      </div>
-      <TextField label="Location (optional)" value={value.location ?? ''} onChange={(v) => set('location', v)} error={errors.location} />
-      <TextAreaField label="Summary (optional)" value={value.summary ?? ''} onChange={(v) => set('summary', v)} error={errors.summary} max={LIMITS.long} rows={3} />
+        <div className="grid gap-4 sm:grid-cols-2">
+          <TextField label={isEducation ? 'Institution' : 'Company'} value={value.company} onChange={(v) => set('company', v)} error={errors.company} />
+          <TextField label="Period" value={value.period} onChange={(v) => set('period', v)} error={errors.period} placeholder="2022 — Present" />
+        </div>
+        <TextField label="Location (optional)" value={value.location ?? ''} onChange={(v) => set('location', v)} error={errors.location} />
+      </FormSection>
 
-      <LineListEditor
-        label="Highlights (optional)"
-        values={value.bullets ?? []}
-        onChange={(v) => set('bullets', v)}
-        addLabel="Add highlight"
-        error={errors.bullets}
-      />
-      <TagInput
-        label="Tags / stack (optional)"
-        values={value.stack ?? []}
-        onChange={(v) => set('stack', v)}
-        error={errors.stack}
-        hint={pillars.length ? 'Hidden on the site while disciplines are used — each discipline has its own stack.' : 'Shown as chips under the highlights.'}
-      />
+      <FormSection title="Summary & highlights">
+        <TextAreaField label="Summary (optional)" value={value.summary ?? ''} onChange={(v) => set('summary', v)} error={errors.summary} max={LIMITS.long} rows={3} />
+        <LineListEditor
+          label="Highlights (optional)"
+          values={value.bullets ?? []}
+          onChange={(v) => set('bullets', v)}
+          addLabel="Add highlight"
+          error={errors.bullets}
+        />
+        <TagInput
+          label="Tags / stack (optional)"
+          values={value.stack ?? []}
+          onChange={(v) => set('stack', v)}
+          error={errors.stack}
+          hint={pillars.length ? 'Hidden on the site while disciplines are used — each discipline has its own stack.' : 'Shown as chips under the highlights.'}
+        />
+      </FormSection>
 
-      <div className="space-y-3 rounded-xl border border-white/[0.07] bg-white/[0.02] p-4">
+      <section className="space-y-3 rounded-xl border border-white/[0.07] bg-white/[0.02] p-4">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <p className="text-sm font-medium text-ink-200">Disciplines (optional)</p>
-            <p className="text-xs text-ink-500">The three-column Web / Data / AI breakdown used on your main role.</p>
+            <p className="text-sm font-medium text-ink-100">Disciplines (optional)</p>
+            <p className="text-xs text-ink-400">The three-column Web / Data / AI breakdown used on your main role.</p>
           </div>
           {unusedPillar && (
             <button
               type="button"
-              className="adm-btn-secondary shrink-0 text-xs"
+              className="adm-btn-secondary adm-btn-sm"
               onClick={() => set('pillars', [...pillars, { key: unusedPillar.key, name: unusedPillar.label, description: '', bullets: [], stack: [] }])}
             >
               <Plus className="h-3.5 w-3.5" /> Add
@@ -243,7 +266,7 @@ function ExperienceForm({
           )}
         </div>
         {pillars.map((p, i) => (
-          <div key={i} className="space-y-4 rounded-xl border border-white/[0.07] bg-ink-950/40 p-4">
+          <div key={i} className="space-y-4 rounded-xl border border-white/[0.07] bg-ink-950/50 p-4">
             <div className="flex items-end gap-3">
               <SelectField
                 label="Discipline"
@@ -271,7 +294,7 @@ function ExperienceForm({
             <TagInput label="Stack" values={p.stack} onChange={(stack) => setPillar(i, { stack })} error={errors[`pillars.${i}.stack`]} />
           </div>
         ))}
-      </div>
+      </section>
     </>
   );
 }

@@ -1,5 +1,5 @@
 import { useEffect, useState, type ChangeEvent } from 'react';
-import { ExternalLink, Github, Images, Loader2, Pencil, Plus, Upload } from 'lucide-react';
+import { ExternalLink, FolderKanban, Github, Images, Loader2, Pencil, Plus, Upload } from 'lucide-react';
 import type { Project } from '@/data/projects';
 import {
   PROJECT_ACCENTS,
@@ -16,6 +16,7 @@ import {
   Badge,
   Drawer,
   EmptyState,
+  FormSection,
   IssueList,
   Modal,
   ReorderButtons,
@@ -26,6 +27,7 @@ import {
   TextField,
   moveItem,
 } from '@/admin/components/ui';
+import { cn } from '@/utils/cn';
 
 export function ProjectsSection({
   projects,
@@ -77,8 +79,10 @@ export function ProjectsSection({
   return (
     <div>
       <SectionHeader
+        eyebrow="Content"
         title="Projects"
         description="Shown in the rotating carousel, in this order."
+        meta={<Badge>{projects.length} {projects.length === 1 ? 'project' : 'projects'}</Badge>}
         actions={
           <button type="button" className="adm-btn-primary" onClick={addProject}>
             <Plus className="h-4 w-4" /> Add project
@@ -87,52 +91,68 @@ export function ProjectsSection({
       />
 
       {listIssues.length > 0 && (
-        <div className="mb-4">
+        <div className="mb-5">
           <IssueList messages={listIssues} />
         </div>
       )}
 
       {projects.length === 0 ? (
-        <EmptyState title="No projects" description="The carousel needs at least one project." action={<button type="button" className="adm-btn-primary" onClick={addProject}><Plus className="h-4 w-4" /> Add project</button>} />
+        <EmptyState
+          icon={FolderKanban}
+          title="No projects"
+          description="The carousel needs at least one project."
+          action={
+            <button type="button" className="adm-btn-primary" onClick={addProject}>
+              <Plus className="h-4 w-4" /> Add project
+            </button>
+          }
+        />
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
           {projects.map((p, i) => {
             const count = issues.filter((x) => x.index === i).length;
             return (
-              <article key={`${p.id}-${i}`} className="adm-card flex flex-col overflow-hidden">
-                <button type="button" onClick={() => editor.open(i, p)} className="block text-left">
-                  <ImageThumb src={media.resolve(p.image)} fallback={p.image} alt={`${p.title} preview`} background={p.imageBg} className="aspect-[16/9] w-full border-b border-white/[0.06]" />
+              <article key={`${p.id}-${i}`} className={cn('adm-card adm-card-interactive flex flex-col overflow-hidden', count > 0 && 'border-rose-400/25')}>
+                <button type="button" onClick={() => editor.open(i, p)} className="relative block text-left">
+                  <ImageThumb src={media.resolve(p.image)} fallback={p.image} alt={`${p.title} preview`} background={p.imageBg} className="adm-checker aspect-[16/9] w-full border-b border-white/[0.06]" />
+                  <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between p-3">
+                    <span className="rounded-full border border-white/10 bg-ink-950/75 px-2.5 py-1 text-[11px] font-medium text-ink-100 backdrop-blur">{p.category}</span>
+                    <span className="rounded-md border border-white/10 bg-ink-950/75 px-1.5 py-0.5 font-mono text-[10.5px] text-ink-300 backdrop-blur">#{i + 1}</span>
+                  </div>
+                  {count > 0 && (
+                    <span className="absolute bottom-3 left-3">
+                      <Badge tone="danger">{count} issue{count > 1 ? 's' : ''}</Badge>
+                    </span>
+                  )}
                 </button>
-                <div className="flex-1 p-4">
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    <Badge tone="accent">{p.category}</Badge>
-                    {count > 0 && <Badge tone="danger">{count} issue{count > 1 ? 's' : ''}</Badge>}
-                  </div>
-                  <h3 className="mt-2 font-display text-base font-semibold text-ink-50">{p.title || 'Untitled project'}</h3>
-                  {p.subtitle && <p className="text-xs text-ink-400">{p.subtitle}</p>}
-                  <p className="mt-2 line-clamp-2 text-sm text-ink-400">{p.summary}</p>
-                  <div className="mt-3 flex flex-wrap gap-1">
+                <div className="flex flex-1 flex-col p-4 sm:p-5">
+                  <h3 className="font-display text-base font-semibold leading-snug text-ink-50">{p.title || 'Untitled project'}</h3>
+                  {p.subtitle && <p className="mt-0.5 line-clamp-1 text-xs text-ink-400">{p.subtitle}</p>}
+                  <p className="mt-2.5 line-clamp-2 text-sm leading-relaxed text-ink-300">{p.summary}</p>
+                  <div className="mt-auto flex flex-wrap gap-1 pt-4">
                     {p.tech.slice(0, 4).map((t) => (
-                      <span key={t} className="rounded-md bg-white/[0.05] px-1.5 py-0.5 font-mono text-[10px] text-ink-300">{t}</span>
+                      <span key={t} className="rounded-md border border-white/[0.06] bg-white/[0.04] px-1.5 py-0.5 font-mono text-[10.5px] text-ink-300">
+                        {t}
+                      </span>
                     ))}
-                    {p.tech.length > 4 && <span className="px-1 font-mono text-[10px] text-ink-500">+{p.tech.length - 4}</span>}
+                    {p.tech.length > 4 && <span className="px-1 py-0.5 font-mono text-[10.5px] text-ink-500">+{p.tech.length - 4}</span>}
                   </div>
-                  <div className="mt-3 flex gap-3 text-xs">
+                </div>
+                <div className="flex items-center justify-between gap-2 border-t border-white/[0.06] px-2.5 py-2">
+                  <div className="flex min-w-0 items-center gap-0.5">
                     {p.links.github && (
-                      <a href={p.links.github} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-ink-400 hover:text-ink-100">
+                      <a href={p.links.github} target="_blank" rel="noreferrer" className="adm-btn-ghost adm-btn-sm">
                         <Github className="h-3.5 w-3.5" /> Code
                       </a>
                     )}
                     {p.links.demo && (
-                      <a href={p.links.demo} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-ink-400 hover:text-ink-100">
+                      <a href={p.links.demo} target="_blank" rel="noreferrer" className="adm-btn-ghost adm-btn-sm">
                         <ExternalLink className="h-3.5 w-3.5" /> Demo
                       </a>
                     )}
+                    {!p.links.github && !p.links.demo && <span className="px-2 text-xs text-ink-500">No links</span>}
                   </div>
-                </div>
-                <div className="flex items-center justify-between border-t border-white/[0.06] px-2 py-1.5">
-                  <span className="px-2 font-mono text-[11px] text-ink-500">#{i + 1}</span>
-                  <div className="flex items-center">
+                  <div className="flex items-center gap-1">
                     <ReorderButtons
                       index={i}
                       length={projects.length}
@@ -140,7 +160,7 @@ export function ProjectsSection({
                       onMove={(from, to) => onChange(moveItem(projects, from, to))}
                       onDelete={projects.length > 1 ? () => remove(i) : undefined}
                     />
-                    <button type="button" className="adm-icon-btn" onClick={() => editor.open(i, p)} aria-label={`Edit ${p.title}`}>
+                    <button type="button" className="adm-icon-btn" onClick={() => editor.open(i, p)} aria-label={`Edit ${p.title}`} title="Edit">
                       <Pencil className="h-4 w-4" />
                     </button>
                   </div>
@@ -148,6 +168,16 @@ export function ProjectsSection({
               </article>
             );
           })}
+          <button
+            type="button"
+            onClick={addProject}
+            className="flex min-h-[18rem] flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-white/[0.1] bg-white/[0.01] text-ink-400 transition hover:border-accent-400/40 hover:bg-accent-500/[0.04] hover:text-ink-100"
+          >
+            <span className="grid h-11 w-11 place-items-center rounded-xl border border-white/[0.08] bg-white/[0.03]">
+              <Plus className="h-5 w-5" />
+            </span>
+            <span className="text-sm font-medium">Add project</span>
+          </button>
         </div>
       )}
 
@@ -234,48 +264,49 @@ function ProjectForm({
     <>
       {issues.length > 0 && <IssueList messages={issues.map((i) => i.message)} />}
 
-      <div className="grid gap-5 sm:grid-cols-2">
-        <TextField label="Title" value={value.title} onChange={setTitle} error={errors.title} max={LIMITS.short} autoFocus={isNew} />
-        <TextField
-          label="ID"
-          value={value.id}
-          onChange={(v) => {
-            setIdTouched(true);
-            set('id', v);
-          }}
-          error={errors.id}
-          hint="Unique, lowercase-with-dashes. Not shown on the site."
-          className="font-mono"
-        />
-      </div>
-      <div className="grid gap-5 sm:grid-cols-2">
-        <TextField label="Subtitle (optional)" value={value.subtitle ?? ''} onChange={(v) => set('subtitle', v)} error={errors.subtitle} max={LIMITS.short} />
-        <SelectField
-          label="Category"
-          value={value.category}
-          options={PROJECT_CATEGORIES.map((c) => ({ value: c, label: c }))}
-          onChange={(v) => set('category', v)}
-          error={errors.category}
-        />
-      </div>
-      <TextField label="Summary" value={value.summary} onChange={(v) => set('summary', v)} error={errors.summary} max={LIMITS.summary} hint="One line shown above the title." />
-      <TextAreaField label="Description" value={value.description} onChange={(v) => set('description', v)} error={errors.description} max={LIMITS.long} rows={5} />
-      <TagInput label="Technologies" values={value.tech} onChange={(v) => set('tech', v)} error={errors.tech} placeholder="React, Django…" />
-
-      <div>
-        <div className="adm-label">
-          <span>Project image</span>
-          <span className="font-mono text-[10px] text-ink-500">1200 × 750 works best</span>
+      <FormSection title="Basics">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <TextField label="Title" value={value.title} onChange={setTitle} error={errors.title} max={LIMITS.short} autoFocus={isNew} />
+          <TextField
+            label="ID"
+            value={value.id}
+            onChange={(v) => {
+              setIdTouched(true);
+              set('id', v);
+            }}
+            error={errors.id}
+            hint="Unique, lowercase-with-dashes. Not shown on the site."
+            inputClassName="font-mono"
+          />
         </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <TextField label="Subtitle (optional)" value={value.subtitle ?? ''} onChange={(v) => set('subtitle', v)} error={errors.subtitle} max={LIMITS.short} />
+          <SelectField
+            label="Category"
+            value={value.category}
+            options={PROJECT_CATEGORIES.map((c) => ({ value: c, label: c }))}
+            onChange={(v) => set('category', v)}
+            error={errors.category}
+          />
+        </div>
+      </FormSection>
+
+      <FormSection title="Content" description="What visitors read in the carousel.">
+        <TextField label="Summary" value={value.summary} onChange={(v) => set('summary', v)} error={errors.summary} max={LIMITS.summary} hint="One line shown above the title." />
+        <TextAreaField label="Description" value={value.description} onChange={(v) => set('description', v)} error={errors.description} max={LIMITS.long} rows={5} />
+        <TagInput label="Technologies" values={value.tech} onChange={(v) => set('tech', v)} error={errors.tech} placeholder="React, Django…" />
+      </FormSection>
+
+      <FormSection title="Project image" aside={<span className="font-mono text-[10.5px] text-ink-500">1200 × 750 works best</span>}>
         <ImageThumb
           src={value.image ? media.resolve(value.image) : ''}
           fallback={value.image}
           alt="Project preview"
           background={value.imageBg}
-          className="aspect-[16/10] w-full rounded-xl border border-white/10"
+          className="adm-checker aspect-[16/10] w-full rounded-xl border border-white/[0.08]"
         />
-        <div className="mt-3 flex flex-wrap gap-2">
-          <label className={`adm-btn-secondary cursor-pointer ${uploading ? 'pointer-events-none opacity-60' : ''}`}>
+        <div className="flex flex-wrap gap-2">
+          <label className={cn('adm-btn-secondary cursor-pointer', uploading && 'pointer-events-none opacity-60')}>
             {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
             Upload new
             <input type="file" accept={ACCEPT_IMAGES} className="sr-only" onChange={(e) => void onFile(e)} />
@@ -284,19 +315,21 @@ function ProjectForm({
             <Images className="h-4 w-4" /> Choose existing
           </button>
         </div>
-        {(uploadError || errors.image) && <p className="mt-2 text-xs text-rose-300">{uploadError ?? errors.image}</p>}
-      </div>
+        {(uploadError || errors.image) && <p className="adm-error">{uploadError ?? errors.image}</p>}
+      </FormSection>
 
-      <div className="grid gap-5 sm:grid-cols-2">
-        <TextField label="GitHub link (optional)" type="url" value={value.links.github ?? ''} onChange={(v) => set('links', { ...value.links, github: v })} error={errors['links.github']} placeholder="https://github.com/…" />
-        <TextField label="Live demo link (optional)" type="url" value={value.links.demo ?? ''} onChange={(v) => set('links', { ...value.links, demo: v })} error={errors['links.demo']} placeholder="https://…" />
-      </div>
+      <FormSection title="Links">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <TextField label="GitHub link (optional)" type="url" value={value.links.github ?? ''} onChange={(v) => set('links', { ...value.links, github: v })} error={errors['links.github']} placeholder="https://github.com/…" />
+          <TextField label="Live demo link (optional)" type="url" value={value.links.demo ?? ''} onChange={(v) => set('links', { ...value.links, demo: v })} error={errors['links.demo']} placeholder="https://…" />
+        </div>
+      </FormSection>
 
-      <details className="rounded-xl border border-white/[0.07] bg-white/[0.02] px-4 py-3" open={!!(errors.imageBg || errors.image)}>
+      <details className="group rounded-xl border border-white/[0.07] bg-white/[0.02] px-4 py-3" open={!!(errors.imageBg || errors.image)}>
         <summary className="cursor-pointer select-none text-sm font-medium text-ink-200">Advanced</summary>
         <div className="mt-4 space-y-5">
-          <TextField label="Image path or URL" value={value.image} onChange={(v) => set('image', v)} error={errors.image} hint="Set automatically when you upload or choose an image." className="font-mono" />
-          <div className="flex items-end gap-3">
+          <TextField label="Image path or URL" value={value.image} onChange={(v) => set('image', v)} error={errors.image} hint="Set automatically when you upload or choose an image." inputClassName="font-mono" />
+          <div className="flex items-start gap-3">
             <TextField
               label="Image background (optional)"
               value={value.imageBg ?? ''}
@@ -306,7 +339,7 @@ function ProjectForm({
               hint="Only for transparent images designed for a specific backdrop."
               className="flex-1"
             />
-            <input type="color" value={hexBg} onChange={(e) => set('imageBg', e.target.value)} className="mb-6 h-10 w-12 cursor-pointer rounded-lg border border-white/10 bg-transparent" aria-label="Pick image background colour" />
+            <input type="color" value={hexBg} onChange={(e) => set('imageBg', e.target.value)} className="mt-[26px] h-[42px] w-12 cursor-pointer rounded-lg border border-white/10 bg-transparent" aria-label="Pick image background colour" />
           </div>
           <SelectField
             label="Accent gradient"
@@ -330,9 +363,12 @@ function ProjectForm({
                   onChange({ ...value, image: m.publicPath });
                   setLibraryOpen(false);
                 }}
-                className="overflow-hidden rounded-xl border border-white/10 text-left transition hover:border-accent-400/60"
+                className={cn(
+                  'overflow-hidden rounded-xl border text-left transition hover:border-accent-400/60',
+                  m.publicPath === value.image.split(/[?#]/)[0] ? 'border-accent-400/70 ring-2 ring-accent-400/30' : 'border-white/10',
+                )}
               >
-                <ImageThumb src={media.resolve(m.publicPath)} fallback={m.publicPath} alt={m.name} className="aspect-[16/10] w-full" />
+                <ImageThumb src={media.resolve(m.publicPath)} fallback={m.publicPath} alt={m.name} className="adm-checker aspect-[16/10] w-full" />
                 <span className="block truncate px-2 py-1.5 font-mono text-[10px] text-ink-400">{m.name}</span>
               </button>
             ))}

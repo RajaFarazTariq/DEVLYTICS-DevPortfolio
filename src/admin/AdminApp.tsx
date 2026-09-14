@@ -3,6 +3,7 @@ import {
   AlertTriangle,
   Briefcase,
   CheckCircle2,
+  ChevronRight,
   Clock,
   ExternalLink,
   FolderKanban,
@@ -80,13 +81,15 @@ type Upload = PendingUpload & { keep: boolean };
 type Phase = 'checking' | 'signed-out' | 'verifying' | 'loading' | 'ready' | 'error';
 
 const TABS = [
-  { id: 'overview', label: 'Overview', icon: LayoutDashboard },
-  { id: 'profile', label: 'Profile', icon: UserRound },
-  { id: 'projects', label: 'Projects', icon: FolderKanban },
-  { id: 'skills', label: 'Skills', icon: Sparkles },
-  { id: 'experience', label: 'Experience & Education', icon: Briefcase },
-  { id: 'media', label: 'Media', icon: Images },
+  { id: 'overview', label: 'Overview', icon: LayoutDashboard, group: 'General' },
+  { id: 'profile', label: 'Profile', icon: UserRound, group: 'Content' },
+  { id: 'projects', label: 'Projects', icon: FolderKanban, group: 'Content' },
+  { id: 'skills', label: 'Skills', icon: Sparkles, group: 'Content' },
+  { id: 'experience', label: 'Experience & Education', icon: Briefcase, group: 'Content' },
+  { id: 'media', label: 'Media', icon: Images, group: 'Assets' },
 ] as const;
+
+const NAV_GROUPS = ['General', 'Content', 'Assets'] as const;
 
 type Tab = (typeof TABS)[number]['id'];
 
@@ -682,57 +685,103 @@ export function AdminApp() {
     return { changed: changedKeys.includes(id), issues: issues.filter((i) => i.section === id).length };
   };
 
-  const nav = TABS.map((t) => {
+  const navItem = (t: (typeof TABS)[number]) => {
+    const s = sectionState(t.id);
+    const Icon = t.icon;
+    const active = tab === t.id;
+    return (
+      <button key={t.id} type="button" onClick={() => setTab(t.id)} aria-current={active ? 'page' : undefined} className="adm-nav-item group">
+        <span
+          className={cn(
+            'grid h-7 w-7 shrink-0 place-items-center rounded-md border transition',
+            active ? 'border-accent-400/30 bg-accent-500/15 text-accent-200' : 'border-white/[0.06] bg-white/[0.02] text-ink-400 group-hover:text-ink-200',
+          )}
+        >
+          <Icon className="h-3.5 w-3.5" />
+        </span>
+        <span className="flex-1 truncate">{t.label}</span>
+        {s.issues > 0 && (
+          <span className="rounded-full bg-rose-500/20 px-1.5 py-px text-[10px] font-semibold text-rose-200" title="Issues to fix">
+            {s.issues}
+          </span>
+        )}
+        {s.changed && <span className="h-2 w-2 rounded-full bg-amber-400 shadow-[0_0_0_3px_rgba(251,191,36,0.15)]" title="Unpublished changes" />}
+      </button>
+    );
+  };
+
+  const tabItem = (t: (typeof TABS)[number]) => {
     const s = sectionState(t.id);
     const Icon = t.icon;
     return (
-      <button
-        key={t.id}
-        type="button"
-        onClick={() => setTab(t.id)}
-        className={cn(
-          'flex shrink-0 items-center gap-3 rounded-xl px-3 py-2 text-left text-sm transition',
-          tab === t.id ? 'bg-white/[0.08] text-ink-50' : 'text-ink-400 hover:bg-white/[0.04] hover:text-ink-100',
-        )}
-      >
-        <Icon className="h-4 w-4 shrink-0" />
-        <span className="flex-1 whitespace-nowrap">{t.label}</span>
-        {s.issues > 0 && (
-          <span className="rounded-full bg-rose-500/20 px-1.5 text-[10px] font-semibold text-rose-200">{s.issues}</span>
-        )}
-        {s.changed && <span className="h-2 w-2 rounded-full bg-amber-400" title="Unpublished changes" />}
+      <button key={t.id} type="button" onClick={() => setTab(t.id)} aria-current={tab === t.id ? 'page' : undefined} className="adm-tab">
+        <Icon className="h-3.5 w-3.5" />
+        {t.label}
+        {s.issues > 0 && <span className="rounded-full bg-rose-500/25 px-1.5 text-[10px] font-semibold text-rose-100">{s.issues}</span>}
+        {s.changed && <span className="h-1.5 w-1.5 rounded-full bg-amber-400" title="Unpublished changes" />}
       </button>
     );
-  });
+  };
 
+  const currentTab = TABS.find((t) => t.id === tab) ?? TABS[0];
   const changeCount = changedKeys.length + uploadsToCommit.length + deletions.length;
 
+  const repoBadge =
+    loaded.mode === 'local' ? (
+      <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/25 bg-amber-500/10 px-2.5 py-1 font-medium text-amber-200">
+        <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
+        Local preview · publishing disabled
+      </span>
+    ) : (
+      <a
+        href={`${repoUrl}/tree/${ADMIN_CONFIG.branch}`}
+        target="_blank"
+        rel="noreferrer"
+        className="inline-flex min-w-0 items-center gap-1.5 rounded-full border border-white/[0.08] bg-white/[0.02] px-2.5 py-1 text-ink-300 transition hover:border-white/[0.16] hover:text-ink-100"
+      >
+        <Github className="h-3.5 w-3.5 shrink-0" />
+        <span className="truncate">{ADMIN_CONFIG.repo}</span>
+        <span className="text-ink-500">@{ADMIN_CONFIG.branch}</span>
+        <span className="font-mono text-ink-500">{loaded.headSha.slice(0, 7)}</span>
+      </a>
+    );
+
   return (
-    <div className="min-h-screen lg:grid lg:grid-cols-[260px_1fr]">
-      <aside className="hidden border-r border-white/[0.06] bg-ink-900/40 lg:flex lg:h-screen lg:flex-col lg:sticky lg:top-0">
-        <div className="flex items-center gap-3 px-5 py-5">
+    <div className="min-h-screen lg:grid lg:grid-cols-[264px_minmax(0,1fr)]">
+      <aside className="hidden border-r border-white/[0.06] bg-ink-950/60 backdrop-blur-xl lg:sticky lg:top-0 lg:flex lg:h-screen lg:flex-col">
+        <div className="flex h-16 shrink-0 items-center gap-3 border-b border-white/[0.06] px-5">
           <span className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-accent-500 to-violet-600 font-display font-bold text-white shadow-glow">
             D
           </span>
           <div className="leading-tight">
-            <p className="font-display font-bold text-ink-50">Devlytics</p>
-            <p className="text-xs text-ink-500">Admin panel</p>
+            <p className="font-display text-[15px] font-bold text-ink-50">Devlytics</p>
+            <p className="text-xs text-ink-400">Admin panel</p>
           </div>
         </div>
-        <nav className="flex flex-1 flex-col gap-1 px-3">{nav}</nav>
-        <div className="space-y-3 border-t border-white/[0.06] p-4">
-          <a href="/" target="_blank" rel="noreferrer" className="adm-btn-ghost w-full justify-start px-2 text-xs">
-            <ExternalLink className="h-3.5 w-3.5" /> View live site
+        <nav className="flex-1 space-y-6 overflow-y-auto px-3 py-5" aria-label="Admin sections">
+          {NAV_GROUPS.map((group) => (
+            <div key={group}>
+              <p className="adm-eyebrow mb-2 px-2.5">{group}</p>
+              <div className="space-y-0.5">{TABS.filter((t) => t.group === group).map(navItem)}</div>
+            </div>
+          ))}
+        </nav>
+        <div className="space-y-2 border-t border-white/[0.06] p-3">
+          <a href="/" target="_blank" rel="noreferrer" className="adm-nav-item group">
+            <span className="grid h-7 w-7 shrink-0 place-items-center rounded-md border border-white/[0.06] bg-white/[0.02] text-ink-400 transition group-hover:text-ink-200">
+              <ExternalLink className="h-3.5 w-3.5" />
+            </span>
+            <span className="flex-1">View live site</span>
           </a>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 rounded-xl border border-white/[0.06] bg-white/[0.02] p-2.5">
             {user ? (
-              <img src={user.avatar_url} alt="" className="h-8 w-8 rounded-full border border-white/10" />
+              <img src={user.avatar_url} alt="" className="h-9 w-9 rounded-full border border-white/10" />
             ) : (
-              <span className="grid h-8 w-8 place-items-center rounded-full bg-white/[0.06] text-xs text-ink-400">L</span>
+              <span className="grid h-9 w-9 place-items-center rounded-full border border-white/[0.08] bg-white/[0.05] text-xs font-semibold text-ink-300">L</span>
             )}
             <div className="min-w-0 flex-1 leading-tight">
-              <p className="truncate text-sm text-ink-100">{user ? user.name || user.login : 'Local preview'}</p>
-              <p className="truncate text-xs text-ink-500">{user ? `@${user.login}` : 'Not signed in'}</p>
+              <p className="truncate text-sm font-medium text-ink-100">{user ? user.name || user.login : 'Local preview'}</p>
+              <p className="truncate text-xs text-ink-400">{user ? `@${user.login}` : 'Not signed in'}</p>
             </div>
             <button type="button" className="adm-icon-btn" onClick={signOut} aria-label="Sign out" title="Sign out">
               <LogOut className="h-4 w-4" />
@@ -741,48 +790,51 @@ export function AdminApp() {
         </div>
       </aside>
 
-      <div className="min-w-0">
-        <header className="sticky top-0 z-30 border-b border-white/[0.06] bg-ink-950/85 backdrop-blur-xl">
-          <div className="flex flex-wrap items-center gap-3 px-4 py-3 sm:px-8">
-            <div className="flex items-center gap-2 text-xs text-ink-400">
-              {loaded.mode === 'local' ? (
-                <span className="rounded-full border border-amber-400/30 bg-amber-500/10 px-2.5 py-1 text-amber-200">
-                  Local preview · publishing disabled
-                </span>
-              ) : (
-                <a
-                  href={`${repoUrl}/tree/${ADMIN_CONFIG.branch}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-1.5 rounded-full border border-white/10 px-2.5 py-1 hover:text-ink-100"
-                >
-                  <Github className="h-3.5 w-3.5" /> {ADMIN_CONFIG.repo}@{ADMIN_CONFIG.branch}
-                  <span className="font-mono text-ink-500">{loaded.headSha.slice(0, 7)}</span>
-                </a>
-              )}
+      <div className="flex min-w-0 flex-col">
+        <header className="sticky top-0 z-30 border-b border-white/[0.06] bg-ink-950/80 backdrop-blur-xl">
+          <div className="flex h-16 items-center gap-3 px-4 sm:px-6 lg:px-8">
+            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-accent-500 to-violet-600 font-display text-sm font-bold text-white lg:hidden">
+              D
+            </span>
+            <div className="min-w-0">
+              <p className="hidden items-center gap-1 text-[11px] text-ink-500 sm:flex">
+                Admin <ChevronRight className="h-3 w-3" /> {currentTab.group}
+              </p>
+              <p className="truncate font-display text-[15px] font-semibold leading-tight text-ink-50">{currentTab.label}</p>
+            </div>
+            <div className="ml-3 hidden min-w-0 items-center gap-2 text-xs xl:flex">
+              {repoBadge}
               {deploy && <DeployPill status={deploy} />}
             </div>
-            <div className="ml-auto flex items-center gap-2">
+            <div className="ml-auto flex items-center gap-1.5 sm:gap-2">
               {dirty && (
-                <span className="hidden text-xs text-amber-200 sm:inline">
+                <span className="hidden items-center gap-2 rounded-full border border-amber-400/25 bg-amber-500/10 px-2.5 py-1 text-xs font-medium text-amber-200 md:inline-flex">
+                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-400" />
                   {changeCount} unpublished change{changeCount === 1 ? '' : 's'}
                 </span>
               )}
-              <button type="button" className="adm-btn-ghost" onClick={discardAll} disabled={!dirty}>
+              <button type="button" className="adm-btn-ghost max-sm:px-2.5" onClick={discardAll} disabled={!dirty} title="Discard all unpublished changes">
                 <RotateCcw className="h-4 w-4" /> <span className="hidden sm:inline">Discard</span>
               </button>
               <button type="button" className="adm-btn-primary" onClick={openPublish} disabled={!dirty}>
-                <Rocket className="h-4 w-4" /> Review & publish
+                <Rocket className="h-4 w-4" /> <span className="hidden sm:inline">Review & publish</span>
+                <span className="sm:hidden">Publish</span>
               </button>
               <button type="button" className="adm-icon-btn lg:hidden" onClick={signOut} aria-label="Sign out">
                 <LogOut className="h-4 w-4" />
               </button>
             </div>
           </div>
-          <nav className="scrollbar-none flex gap-1 overflow-x-auto px-3 pb-2 lg:hidden">{nav}</nav>
+          <div className="flex flex-wrap items-center gap-2 px-4 pb-3 text-xs sm:px-6 lg:px-8 xl:hidden">
+            {repoBadge}
+            {deploy && <DeployPill status={deploy} />}
+          </div>
+          <nav className="scrollbar-none flex gap-1.5 overflow-x-auto px-4 pb-3 sm:px-6 lg:hidden" aria-label="Admin sections">
+            {TABS.map(tabItem)}
+          </nav>
         </header>
 
-        <main className="mx-auto max-w-6xl px-4 py-8 sm:px-8">
+        <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
           {tab === 'overview' && (
             <OverviewSection
               draft={draft}
@@ -864,13 +916,18 @@ export function AdminApp() {
         <div
           role="status"
           className={cn(
-            'fixed bottom-6 right-6 z-[70] max-w-sm rounded-xl border px-4 py-3 text-sm shadow-2xl backdrop-blur',
+            'adm-animate-pop fixed bottom-4 left-4 right-4 z-[70] flex items-start gap-3 rounded-xl border px-4 py-3 text-sm shadow-2xl backdrop-blur-xl sm:bottom-6 sm:left-auto sm:right-6 sm:max-w-sm',
             toast.tone === 'success'
-              ? 'border-emerald-400/30 bg-emerald-500/15 text-emerald-100'
-              : 'border-rose-400/30 bg-rose-500/15 text-rose-100',
+              ? 'border-emerald-400/25 bg-ink-900/95 text-emerald-100'
+              : 'border-rose-400/25 bg-ink-900/95 text-rose-100',
           )}
         >
-          {toast.text}
+          {toast.tone === 'success' ? (
+            <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-300" />
+          ) : (
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-rose-300" />
+          )}
+          <span className="leading-relaxed">{toast.text}</span>
         </div>
       )}
     </div>

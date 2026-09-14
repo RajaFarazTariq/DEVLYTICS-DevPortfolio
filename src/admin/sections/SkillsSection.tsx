@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Pencil, Plus } from 'lucide-react';
+import { Pencil, Plus, Sparkles } from 'lucide-react';
 import type { SkillGroupContent } from '@/data/skills';
 import { skillIcons, type SkillIconName } from '@/data/skillIcons';
 import { SKILL_ACCENTS, emptySkillGroup, uniqueSlug } from '@/admin/lib/content';
@@ -11,6 +11,7 @@ import {
   Badge,
   Drawer,
   EmptyState,
+  FormSection,
   IssueList,
   ReorderButtons,
   SectionHeader,
@@ -57,11 +58,15 @@ export function SkillsSection({
       onConfirm: () => onChange(groups.filter((_, k) => k !== i)),
     });
 
+  const skillTotal = groups.reduce((n, g) => n + g.items.length, 0);
+
   return (
     <div>
       <SectionHeader
+        eyebrow="Content"
         title="Skills"
         description="Skill groups and proficiency bars in the Skills Stack section."
+        meta={<Badge>{skillTotal} skills · {groups.length} groups</Badge>}
         actions={
           <button type="button" className="adm-btn-primary" onClick={add}>
             <Plus className="h-4 w-4" /> Add group
@@ -70,45 +75,45 @@ export function SkillsSection({
       />
 
       {groups.length === 0 ? (
-        <EmptyState title="No skill groups" description="Add a group such as Frontend or Databases." />
+        <EmptyState icon={Sparkles} title="No skill groups" description="Add a group such as Frontend or Databases." />
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
           {groups.map((g, i) => {
             const Icon = skillIcons[g.icon] ?? skillIcons.Wrench;
             const count = issues.filter((x) => x.index === i).length;
             return (
-              <article key={`${g.id}-${i}`} className="adm-card flex flex-col">
-                <div className="flex-1 p-5">
+              <article key={`${g.id}-${i}`} className={cn('adm-card adm-card-interactive flex flex-col', count > 0 && 'border-rose-400/25')}>
+                <button type="button" onClick={() => editor.open(i, g)} className="flex-1 p-5 text-left">
                   <div className="flex items-center gap-3">
-                    <span className="grid h-10 w-10 place-items-center rounded-xl border border-white/10 bg-white/[0.03]">
+                    <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-white/[0.08] bg-white/[0.03]">
                       <Icon className={cn('h-5 w-5', g.accent)} />
                     </span>
                     <div className="min-w-0 flex-1">
-                      <h3 className="truncate font-display font-semibold text-ink-50">{g.title || 'Untitled group'}</h3>
-                      <p className="text-xs text-ink-500">{g.items.length} skills</p>
+                      <h3 className="truncate font-display text-[15px] font-semibold text-ink-50">{g.title || 'Untitled group'}</h3>
+                      <p className="text-xs text-ink-400">{g.items.length} skills</p>
                     </div>
                     {count > 0 && <Badge tone="danger">{count}</Badge>}
                   </div>
-                  <ul className="mt-4 space-y-2.5">
+                  <ul className="mt-5 space-y-3">
                     {g.items.slice(0, 5).map((s, k) => (
                       <li key={k}>
-                        <div className="flex justify-between text-xs">
+                        <div className="flex justify-between gap-3 text-xs">
                           <span className="truncate text-ink-300">{s.name}</span>
-                          <span className="font-mono text-ink-500">{s.level}%</span>
+                          <span className="font-mono tabular-nums text-ink-400">{s.level}%</span>
                         </div>
-                        <div className="mt-1 h-1 overflow-hidden rounded-full bg-white/[0.06]">
+                        <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-white/[0.06]">
                           <div className="h-full rounded-full bg-gradient-to-r from-accent-500 via-violet-500 to-pink-500" style={{ width: `${Math.min(100, Math.max(0, s.level))}%` }} />
                         </div>
                       </li>
                     ))}
                     {g.items.length > 5 && <li className="text-xs text-ink-500">+{g.items.length - 5} more</li>}
                   </ul>
-                </div>
-                <div className="flex items-center justify-between border-t border-white/[0.06] px-2 py-1.5">
+                </button>
+                <div className="flex items-center justify-between border-t border-white/[0.06] px-2.5 py-2">
                   <span className="px-2 font-mono text-[11px] text-ink-500">#{i + 1}</span>
-                  <div className="flex items-center">
+                  <div className="flex items-center gap-1">
                     <ReorderButtons index={i} length={groups.length} label={g.title || `group ${i + 1}`} onMove={(a, b) => onChange(moveItem(groups, a, b))} onDelete={() => remove(i)} />
-                    <button type="button" className="adm-icon-btn" onClick={() => editor.open(i, g)} aria-label={`Edit ${g.title}`}>
+                    <button type="button" className="adm-icon-btn" onClick={() => editor.open(i, g)} aria-label={`Edit ${g.title}`} title="Edit">
                       <Pencil className="h-4 w-4" />
                     </button>
                   </div>
@@ -116,6 +121,16 @@ export function SkillsSection({
               </article>
             );
           })}
+          <button
+            type="button"
+            onClick={add}
+            className="flex min-h-[16rem] flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-white/[0.1] bg-white/[0.01] text-ink-400 transition hover:border-accent-400/40 hover:bg-accent-500/[0.04] hover:text-ink-100"
+          >
+            <span className="grid h-11 w-11 place-items-center rounded-xl border border-white/[0.08] bg-white/[0.03]">
+              <Plus className="h-5 w-5" />
+            </span>
+            <span className="text-sm font-medium">Add group</span>
+          </button>
         </div>
       )}
 
@@ -147,6 +162,8 @@ export function SkillsSection({
   );
 }
 
+const SKILL_COLUMNS = 'sm:grid-cols-[minmax(0,1fr)_7rem_4.5rem_auto]';
+
 function SkillGroupForm({
   value,
   onChange,
@@ -169,131 +186,142 @@ function SkillGroupForm({
   return (
     <>
       {issues.length > 0 && <IssueList messages={issues.map((i) => i.message)} />}
-      <div className="grid gap-5 sm:grid-cols-2">
-        <TextField
-          label="Group title"
-          value={value.title}
-          autoFocus={isNew}
-          onChange={(title) =>
-            onChange({ ...value, title, id: idTouched ? value.id : uniqueSlug(slugify(title) || 'new-group', otherIds) })
-          }
-          error={errors.title}
-        />
-        <TextField
-          label="ID"
-          value={value.id}
-          onChange={(id) => {
-            setIdTouched(true);
-            onChange({ ...value, id });
-          }}
-          error={errors.id}
-          className="font-mono"
-        />
-      </div>
 
-      <div>
-        <div className="adm-label">Icon</div>
-        <div className="grid grid-cols-6 gap-2 sm:grid-cols-9">
-          {(Object.keys(skillIcons) as SkillIconName[]).map((name) => {
-            const Icon = skillIcons[name];
-            return (
-              <button
-                key={name}
-                type="button"
-                title={name}
-                aria-label={name}
-                aria-pressed={value.icon === name}
-                onClick={() => onChange({ ...value, icon: name })}
-                className={cn(
-                  'grid aspect-square place-items-center rounded-xl border transition',
-                  value.icon === name ? 'border-accent-400/70 bg-accent-500/15' : 'border-white/10 hover:border-white/25',
-                )}
-              >
-                <Icon className={cn('h-5 w-5', value.icon === name ? value.accent : 'text-ink-300')} />
-              </button>
-            );
-          })}
+      <FormSection title="Group">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <TextField
+            label="Group title"
+            value={value.title}
+            autoFocus={isNew}
+            onChange={(title) =>
+              onChange({ ...value, title, id: idTouched ? value.id : uniqueSlug(slugify(title) || 'new-group', otherIds) })
+            }
+            error={errors.title}
+          />
+          <TextField
+            label="ID"
+            value={value.id}
+            onChange={(id) => {
+              setIdTouched(true);
+              onChange({ ...value, id });
+            }}
+            error={errors.id}
+            inputClassName="font-mono"
+          />
         </div>
-        {errors.icon && <p className="mt-1.5 text-xs text-rose-300">{errors.icon}</p>}
-      </div>
+      </FormSection>
 
-      <div>
-        <div className="adm-label">Icon colour</div>
-        <div className="flex flex-wrap gap-2">
-          {[...new Set([value.accent, ...SKILL_ACCENTS])].filter(Boolean).map((accent) => {
-            const Icon = skillIcons[value.icon] ?? skillIcons.Wrench;
-            return (
-              <button
-                key={accent}
-                type="button"
-                title={accent}
-                aria-label={accent}
-                aria-pressed={value.accent === accent}
-                onClick={() => onChange({ ...value, accent })}
-                className={cn(
-                  'grid h-10 w-10 place-items-center rounded-xl border transition',
-                  value.accent === accent ? 'border-accent-400/70 bg-white/[0.06]' : 'border-white/10 hover:border-white/25',
-                )}
-              >
-                <Icon className={cn('h-5 w-5', accent)} />
-              </button>
-            );
-          })}
+      <FormSection title="Appearance">
+        <div>
+          <div className="adm-label">Icon</div>
+          <div className="grid grid-cols-6 gap-2 sm:grid-cols-9">
+            {(Object.keys(skillIcons) as SkillIconName[]).map((name) => {
+              const Icon = skillIcons[name];
+              return (
+                <button
+                  key={name}
+                  type="button"
+                  title={name}
+                  aria-label={name}
+                  aria-pressed={value.icon === name}
+                  onClick={() => onChange({ ...value, icon: name })}
+                  className={cn(
+                    'grid aspect-square place-items-center rounded-lg border transition',
+                    value.icon === name ? 'border-accent-400/70 bg-accent-500/15 ring-2 ring-accent-400/20' : 'border-white/[0.08] bg-white/[0.02] hover:border-white/25',
+                  )}
+                >
+                  <Icon className={cn('h-5 w-5', value.icon === name ? value.accent : 'text-ink-300')} />
+                </button>
+              );
+            })}
+          </div>
+          {errors.icon && <p className="adm-error">{errors.icon}</p>}
         </div>
-        {errors.accent && <p className="mt-1.5 text-xs text-rose-300">{errors.accent}</p>}
-      </div>
 
-      <div>
-        <div className="adm-label">
-          <span>Skills</span>
-          <span className="text-ink-500">Level 0–100</span>
+        <div>
+          <div className="adm-label">Icon colour</div>
+          <div className="flex flex-wrap gap-2">
+            {[...new Set([value.accent, ...SKILL_ACCENTS])].filter(Boolean).map((accent) => {
+              const Icon = skillIcons[value.icon] ?? skillIcons.Wrench;
+              return (
+                <button
+                  key={accent}
+                  type="button"
+                  title={accent}
+                  aria-label={accent}
+                  aria-pressed={value.accent === accent}
+                  onClick={() => onChange({ ...value, accent })}
+                  className={cn(
+                    'grid h-10 w-10 place-items-center rounded-lg border transition',
+                    value.accent === accent ? 'border-accent-400/70 bg-white/[0.06] ring-2 ring-accent-400/20' : 'border-white/[0.08] bg-white/[0.02] hover:border-white/25',
+                  )}
+                >
+                  <Icon className={cn('h-5 w-5', accent)} />
+                </button>
+              );
+            })}
+          </div>
+          {errors.accent && <p className="adm-error">{errors.accent}</p>}
         </div>
-        <div className="space-y-2">
-          {value.items.map((item, i) => (
-            <div key={i} className="flex flex-wrap items-center gap-2 rounded-xl border border-white/[0.06] p-2 sm:flex-nowrap">
-              <input
-                value={item.name}
-                onChange={(e) => setItem(i, { name: e.target.value })}
-                placeholder="Skill name"
-                aria-label={`Skill ${i + 1} name`}
-                aria-invalid={!!errors[`items.${i}.name`]}
-                className="adm-input min-w-0 flex-1"
-              />
-              <input
-                type="range"
-                min={0}
-                max={100}
-                value={Number.isFinite(item.level) ? item.level : 0}
-                onChange={(e) => setItem(i, { level: Number(e.target.value) })}
-                aria-label={`Skill ${i + 1} level`}
-                className="w-28 accent-accent-500"
-              />
-              <input
-                type="number"
-                min={0}
-                max={100}
-                step={1}
-                value={Number.isFinite(item.level) ? item.level : ''}
-                onChange={(e) => setItem(i, { level: e.target.value === '' ? NaN : Number(e.target.value) })}
-                aria-label={`Skill ${i + 1} level number`}
-                aria-invalid={!!errors[`items.${i}.level`]}
-                className="adm-input w-20 px-2 text-center font-mono"
-              />
-              <ReorderButtons
-                index={i}
-                length={value.items.length}
-                label={item.name || `skill ${i + 1}`}
-                onMove={(a, b) => onChange({ ...value, items: moveItem(value.items, a, b) })}
-                onDelete={() => onChange({ ...value, items: value.items.filter((_, k) => k !== i) })}
-              />
+      </FormSection>
+
+      <FormSection title="Skills" aside={<span className="font-mono text-[10.5px] text-ink-500">{value.items.length} · level 0–100</span>}>
+        {value.items.length > 0 && (
+          <div className="overflow-hidden rounded-xl border border-white/[0.07]">
+            <div className={`adm-table-head px-3 sm:grid sm:gap-2 ${SKILL_COLUMNS}`}>
+              <span>Skill</span>
+              <span>Level</span>
+              <span className="text-center">%</span>
+              <span className="w-[6.75rem]" />
             </div>
-          ))}
-        </div>
-        {errors.items && <p className="mt-1.5 text-xs text-rose-300">{errors.items}</p>}
-        <button type="button" className="adm-btn-ghost mt-2 px-2 text-xs" onClick={() => onChange({ ...value, items: [...value.items, { name: '', level: 80 }] })}>
+            {value.items.map((item, i) => (
+              <div key={i} className={`adm-table-row grid items-center gap-2 px-3 py-2.5 ${SKILL_COLUMNS}`}>
+                <input
+                  value={item.name}
+                  onChange={(e) => setItem(i, { name: e.target.value })}
+                  placeholder="Skill name"
+                  aria-label={`Skill ${i + 1} name`}
+                  aria-invalid={!!errors[`items.${i}.name`]}
+                  className="adm-input min-w-0 py-2"
+                />
+                <div className="flex items-center gap-2 sm:contents">
+                  <input
+                    type="range"
+                    min={0}
+                    max={100}
+                    value={Number.isFinite(item.level) ? item.level : 0}
+                    onChange={(e) => setItem(i, { level: Number(e.target.value) })}
+                    aria-label={`Skill ${i + 1} level`}
+                    className="min-w-0 flex-1 accent-accent-500"
+                  />
+                  <input
+                    type="number"
+                    min={0}
+                    max={100}
+                    step={1}
+                    value={Number.isFinite(item.level) ? item.level : ''}
+                    onChange={(e) => setItem(i, { level: e.target.value === '' ? NaN : Number(e.target.value) })}
+                    aria-label={`Skill ${i + 1} level number`}
+                    aria-invalid={!!errors[`items.${i}.level`]}
+                    className="adm-input w-[4.5rem] px-2 py-2 text-center font-mono"
+                  />
+                  <ReorderButtons
+                    index={i}
+                    length={value.items.length}
+                    label={item.name || `skill ${i + 1}`}
+                    onMove={(a, b) => onChange({ ...value, items: moveItem(value.items, a, b) })}
+                    onDelete={() => onChange({ ...value, items: value.items.filter((_, k) => k !== i) })}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+        {errors.items && <p className="adm-error">{errors.items}</p>}
+        <button type="button" className="adm-btn-secondary adm-btn-sm border-dashed" onClick={() => onChange({ ...value, items: [...value.items, { name: '', level: 80 }] })}>
           <Plus className="h-3.5 w-3.5" /> Add skill
         </button>
-      </div>
+      </FormSection>
     </>
   );
 }
