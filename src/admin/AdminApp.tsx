@@ -31,6 +31,17 @@ import {
   type GitHubUser,
 } from '@/admin/lib/github';
 import { clearToken, loadToken, saveToken } from '@/admin/lib/session';
+import {
+  AuthExpiredError,
+  appSignOut,
+  consumeAuthErrorFromUrl,
+  createTokenSource,
+  fetchAppSession,
+  startGitHubSignIn,
+  type AppAuthAvailability,
+  type TokenSource,
+} from '@/admin/lib/auth';
+import { clearDraft, saveDraft, takeDraft } from '@/admin/lib/draftStore';
 import { parseSection, serializeSection, type PortfolioContent } from '@/admin/lib/content';
 import { validateSection, type Issue, type ValidationContext } from '@/admin/lib/validate';
 import {
@@ -66,7 +77,7 @@ type Loaded = {
 
 type Upload = PendingUpload & { keep: boolean };
 
-type Phase = 'signed-out' | 'verifying' | 'loading' | 'ready' | 'error';
+type Phase = 'checking' | 'signed-out' | 'verifying' | 'loading' | 'ready' | 'error';
 
 const TABS = [
   { id: 'overview', label: 'Overview', icon: LayoutDashboard },
@@ -106,9 +117,10 @@ function buildLoaded(
 }
 
 export function AdminApp() {
-  const [token, setToken] = useState<string | null>(() => loadToken());
+  const [auth, setAuth] = useState<TokenSource | null>(null);
+  const [appAuth, setAppAuth] = useState<AppAuthAvailability>('checking');
   const [user, setUser] = useState<GitHubUser | null>(null);
-  const [phase, setPhase] = useState<Phase>(token ? 'verifying' : 'signed-out');
+  const [phase, setPhase] = useState<Phase>('checking');
   const [authError, setAuthError] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [expired, setExpired] = useState(false);
@@ -130,9 +142,24 @@ export function AdminApp() {
   const [deploy, setDeploy] = useState<DeployStatus | null>(null);
   const [toast, setToast] = useState<{ tone: 'success' | 'error'; text: string } | null>(null);
 
-  const client = useMemo(() => (token ? createGitHubClient(token) : null), [token]);
+  const client = useMemo(() => (auth ? createGitHubClient(auth.get) : null), [auth]);
   const loadedRef = useRef(loaded);
   loadedRef.current = loaded;
+  const authRef = useRef(auth);
+  authRef.current = auth;
+
+  /** Ends the GitHub session (revoking an app token). Any loaded draft stays in memory. */
+  const endSession = useCallback((opts: { expired?: boolean; message?: string | null } = {}) => {
+    const current = authRef.current;
+    if (current?.method === 'github-app') void appSignOut(current.peek());
+    else if (current) clearToken();
+    setAuth(null);
+    setUser(null);
+    setExpired(Boolean(opts.expired));
+    if (opts.message !== undefined) setAuthError(opts.message);
+    setPublishOpen(false);
+    setPhase('signed-out');
+  }, []);
 
   const setTab = useCallback((next: Tab) => {
     window.history.replaceState(null, '', `#${next}`);
@@ -187,8 +214,23 @@ export function AdminApp() {
         );
         const images = await c.listDir(ADMIN_CONFIG.imageDir, headSha);
         applyLoaded(buildLoaded('github', headSha, files, images));
+        if (!quiet) {
+          // Edits saved before the sign-in redirect come back if GitHub hasn't moved since.
+          const stored = takeDraft();
+          if (stored?.headSha === headSha) {
+            setDraft(stored.draft);
+            setDeletions(stored.deletions);
+            setToast({ tone: 'success', text: 'Restored your unpublished changes from before signing in.' });
+          } else if (stored) {
+            setToast({ tone: 'error', text: "Content changed on GitHub while you were signed out, so your unpublished edits couldn't be restored." });
+          }
+        }
         setPhase('ready');
       } catch (err) {
+        if (err instanceof AuthExpiredError) {
+          endSession({ expired: true });
+          return;
+        }
         if (quiet) {
           setToast({ tone: 'error', text: `Published, but refreshing failed: ${describeGitHubError(err)} Reload before editing again.` });
           return;
@@ -197,10 +239,32 @@ export function AdminApp() {
         setPhase('error');
       }
     },
-    [applyLoaded],
+    [applyLoaded, endSession],
   );
 
-  // Verify the token (on first load, after sign-in, or after idle sign-out).
+  // Resume a session on load: GitHub App session cookie first, then a token pasted in this tab.
+  useEffect(() => {
+    let cancelled = false;
+    const urlError = consumeAuthErrorFromUrl();
+    if (urlError) setAuthError(urlError);
+    void fetchAppSession().then((session) => {
+      if (cancelled) return;
+      if (session.status === 'ok') {
+        setAppAuth('available');
+        setAuth(createTokenSource('github-app', session));
+        return;
+      }
+      setAppAuth(session.status === 'unavailable' ? session.reason : 'available');
+      const pasted = loadToken();
+      if (pasted) setAuth(createTokenSource('token', { accessToken: pasted, expiresAt: Number.POSITIVE_INFINITY }));
+      else setPhase('signed-out');
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Verify the account (after sign-in, on reload, or after an idle sign-out).
   useEffect(() => {
     if (!client) return;
     let cancelled = false;
@@ -217,21 +281,17 @@ export function AdminApp() {
       })
       .catch((err) => {
         if (cancelled) return;
-        clearToken();
-        setToken(null);
-        setUser(null);
-        setAuthError(describeGitHubError(err));
-        setPhase('signed-out');
+        endSession({ message: describeGitHubError(err) });
       });
     return () => {
       cancelled = true;
     };
-  }, [client, loadFromGitHub]);
+  }, [client, loadFromGitHub, endSession]);
 
-  const signIn = (value: string) => {
+  const signInWithToken = (value: string) => {
     saveToken(value);
     setAuthError(null);
-    setToken(value);
+    setAuth(createTokenSource('token', { accessToken: value, expiresAt: Number.POSITIVE_INFINITY }));
   };
 
   const startLocalPreview = import.meta.env.DEV
@@ -383,7 +443,7 @@ export function AdminApp() {
   }, [dirty]);
 
   useEffect(() => {
-    if (phase !== 'ready' || !token) return;
+    if (phase !== 'ready' || !auth) return;
     let last = Date.now();
     const bump = () => {
       last = Date.now();
@@ -392,18 +452,13 @@ export function AdminApp() {
     events.forEach((e) => window.addEventListener(e, bump, { passive: true }));
     const timer = window.setInterval(() => {
       if (Date.now() - last < ADMIN_CONFIG.idleTimeoutMs || publishing) return;
-      clearToken();
-      setToken(null);
-      setUser(null);
-      setExpired(true);
-      setPublishOpen(false);
-      setPhase('signed-out');
+      endSession({ expired: true });
     }, 15_000);
     return () => {
       events.forEach((e) => window.removeEventListener(e, bump));
       window.clearInterval(timer);
     };
-  }, [phase, token, publishing]);
+  }, [phase, auth, publishing, endSession]);
 
   // ── Deploy status after publishing ─────────────────────────────────────────
 
@@ -467,9 +522,8 @@ export function AdminApp() {
 
   const signOut = () => {
     const run = () => {
-      clearToken();
-      setToken(null);
-      setUser(null);
+      endSession();
+      clearDraft();
       setLoaded(null);
       setDraft(null);
       setUploads({});
@@ -549,6 +603,10 @@ export function AdminApp() {
       setToast({ tone: 'success', text: 'Published. Vercel is redeploying your portfolio.' });
       await loadFromGitHub(client, { quiet: true });
     } catch (err) {
+      if (err instanceof AuthExpiredError) {
+        endSession({ expired: true });
+        return;
+      }
       setConflict(err instanceof ConflictError);
       setPublishError(describeGitHubError(err));
     } finally {
@@ -567,14 +625,24 @@ export function AdminApp() {
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
-  if (phase === 'signed-out' || phase === 'verifying') {
+  const signInWithGitHub = (chooseAccount: boolean) => {
+    // The sign-in leaves the page; keep unpublished text edits for when it comes back.
+    if (dirty && draft && loaded?.mode === 'github') saveDraft({ headSha: loaded.headSha, draft, deletions });
+    startGitHubSignIn(chooseAccount);
+  };
+
+  if (phase === 'checking' || phase === 'signed-out' || phase === 'verifying') {
     return (
       <LoginScreen
+        checking={phase === 'checking'}
         busy={phase === 'verifying'}
+        appAuth={appAuth}
         error={authError}
         expired={expired}
         hasUnsavedChanges={dirty}
-        onSubmit={signIn}
+        hasUnpublishedUploads={uploadsToCommit.length > 0}
+        onGitHubSignIn={signInWithGitHub}
+        onTokenSubmit={signInWithToken}
         onLocalPreview={startLocalPreview}
       />
     );

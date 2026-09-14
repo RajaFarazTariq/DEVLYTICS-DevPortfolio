@@ -79,8 +79,13 @@ export function describeGitHubError(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
 }
 
-export function createGitHubClient(token: string) {
-  async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+/**
+ * @param getToken returns the current GitHub token; `force` asks for a renewed one
+ *   (GitHub App sessions renew through /api/auth/session, pasted tokens are returned as-is).
+ */
+export function createGitHubClient(getToken: (force?: boolean) => Promise<string>) {
+  async function request<T>(path: string, init: RequestInit = {}, retried = false): Promise<T> {
+    const token = await getToken(retried);
     const res = await fetch(`${API}${path}`, {
       ...init,
       cache: 'no-store',
@@ -91,6 +96,8 @@ export function createGitHubClient(token: string) {
         ...(init.body ? { 'Content-Type': 'application/json' } : {}),
       },
     });
+    // An expired app token is renewed once and the request repeated.
+    if (res.status === 401 && !retried) return request<T>(path, init, true);
     if (!res.ok) {
       let message = res.statusText;
       try {
@@ -116,7 +123,17 @@ export function createGitHubClient(token: string) {
       if (!allowed) {
         throw new Error(`@${user.login} is not allowed to manage this portfolio.`);
       }
-      const repoInfo = await request<{ permissions?: { push?: boolean } }>(repoPath);
+      let repoInfo: { permissions?: { push?: boolean } };
+      try {
+        repoInfo = await request<{ permissions?: { push?: boolean } }>(repoPath);
+      } catch (err) {
+        if (err instanceof GitHubError && err.status === 404) {
+          throw new Error(
+            `Signed in as @${user.login}, but ${owner}/${repo} isn't accessible. Install the GitHub App on that repository (github.com → Settings → Applications → Installed GitHub Apps → Configure).`,
+          );
+        }
+        throw err;
+      }
       if (repoInfo.permissions && !repoInfo.permissions.push) {
         throw new Error(`@${user.login} does not have write access to ${owner}/${repo}.`);
       }

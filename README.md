@@ -67,19 +67,33 @@ and is loaded by the typed modules in `src/data/*`. Edit it from the admin panel
 A separate page at **`/admin`** for adding, editing, reordering and deleting portfolio content
 and project images — no code changes needed. It never loads on the public site.
 
-**How it works:** there is no server or database. The admin signs in with a GitHub token, reads
+**How it works:** there is no database. You sign in with GitHub, the admin reads
 `src/content/*.json` and `public/assets/projects/` from the `main` branch, and publishes all
 edits as **one commit**. Vercel redeploys on the push.
 
-**Sign in:** create a [fine-grained token](https://github.com/settings/personal-access-tokens/new)
-with *Only select repositories → DEVLYTICS-DevPortfolio*, **Contents: Read and write**, and
-optionally **Deployments: Read-only** (shows deploy status). Paste it on `/admin`.
+**Sign in:** click **Sign in with GitHub**. This uses a GitHub App (installed only on this repo,
+with *Contents: Read & write* and *Deployments: Read*) and one serverless function,
+`api/auth/[action].ts`, which exchanges the login for a short-lived token. It needs these
+Vercel environment variables:
+
+| Variable | Value |
+| --- | --- |
+| `GITHUB_APP_CLIENT_ID` | GitHub App → Client ID |
+| `GITHUB_APP_CLIENT_SECRET` | GitHub App → Generate a new client secret |
+| `ADMIN_ALLOWED_LOGINS` | optional, comma-separated (default `RajaFarazTariq`) |
+
+The GitHub App's callback URL must be `https://devlytics.vercel.app/api/auth/callback`.
+A [fine-grained token](https://github.com/settings/personal-access-tokens/new) can still be
+pasted under *Use an access token instead*.
 
 **Safeguards**
 
-- Only the GitHub accounts in `src/admin/config.ts` (`allowedLogins`) can sign in.
-- The token is kept in `sessionStorage` only, sent only to `api.github.com`, and cleared after
-  30 minutes of inactivity or when the tab closes.
+- Only the accounts in `ADMIN_ALLOWED_LOGINS` / `src/admin/config.ts` can sign in. Any other
+  account's token is revoked right after its login attempt.
+- App tokens expire after 8 hours and renew silently. The renewal token lives in an HttpOnly,
+  `SameSite=Strict` cookie scoped to `/api/auth`, so page scripts can't read it. The login uses
+  a one-time `state` value, and session endpoints only answer same-origin requests.
+- Signing out, or 30 minutes of inactivity, revokes the token and clears the cookies.
 - Every edit is validated before it can be applied or published: required fields, unique IDs,
   http(s)-only links, existing images, skill levels 0–100, and no duplicate list entries.
 - Publishing refuses to overwrite: if the content files changed on GitHub after loading, or the
