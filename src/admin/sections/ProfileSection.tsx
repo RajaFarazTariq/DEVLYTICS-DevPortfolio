@@ -1,42 +1,8 @@
-import type { ComponentType, ReactNode } from 'react';
 import { BarChart3, Link2, Mail, Plus, Sparkles } from 'lucide-react';
 import type { Profile } from '@/data/profile';
+import { SOCIAL_PLATFORMS } from '@/data/socials';
 import { LIMITS, fieldErrors, type Issue } from '@/admin/lib/validate';
-import { Badge, ReorderButtons, SectionHeader, TagInput, TextAreaField, TextField, moveItem } from '@/admin/components/ui';
-
-function Panel({
-  icon: Icon,
-  title,
-  description,
-  aside,
-  flush,
-  children,
-}: {
-  icon: ComponentType<{ className?: string }>;
-  title: string;
-  description: string;
-  aside?: ReactNode;
-  flush?: boolean;
-  children: ReactNode;
-}) {
-  return (
-    <section className="adm-section">
-      <div className="adm-section-head">
-        <div className="flex items-start gap-3">
-          <span className="adm-icon-chip">
-            <Icon className="h-4 w-4" />
-          </span>
-          <div>
-            <h2 className="adm-section-title">{title}</h2>
-            <p className="adm-section-desc">{description}</p>
-          </div>
-        </div>
-        {aside}
-      </div>
-      {flush ? children : <div className="adm-section-body">{children}</div>}
-    </section>
-  );
-}
+import { Badge, Panel, ReorderButtons, SectionHeader, TagInput, TextAreaField, TextField, moveItem } from '@/admin/components/ui';
 
 const STAT_COLUMNS = 'sm:grid-cols-[minmax(0,1fr)_120px_96px_112px]';
 
@@ -61,7 +27,7 @@ export function ProfileSection({
       <SectionHeader
         eyebrow="Content"
         title="Profile"
-        description="Your name, hero text, contact details, social links and headline stats."
+        description="Your name, hero text, contact details, social links and headline stats. The About bio lives on the About page, the CV on Resume / CV."
         meta={issues.length > 0 ? <Badge tone="danger">{issues.length} to fix</Badge> : undefined}
       />
 
@@ -81,21 +47,29 @@ export function ProfileSection({
       </Panel>
 
       <div className="grid gap-6 xl:grid-cols-2">
-        <Panel icon={Mail} title="Contact" description="Listed in the contact section.">
+        <Panel icon={Mail} title="Contact" description="Listed in the contact section. Leave phone or location empty to hide it.">
           <TextField label="Email" type="email" value={profile.email} onChange={(v) => set('email', v)} error={errors.email} />
           <div className="grid gap-5 sm:grid-cols-2">
-            <TextField label="Phone" value={profile.phone} onChange={(v) => set('phone', v)} error={errors.phone} />
-            <TextField label="Location" value={profile.location} onChange={(v) => set('location', v)} error={errors.location} />
+            <TextField label="Phone (optional)" value={profile.phone} onChange={(v) => set('phone', v)} error={errors.phone} />
+            <TextField label="Location (optional)" value={profile.location} onChange={(v) => set('location', v)} error={errors.location} />
           </div>
         </Panel>
 
-        <Panel icon={Link2} title="Social links" description="Icons in the hero, footer and contact section.">
+        <Panel icon={Link2} title="Social links" description="Icons in the hero, footer and contact section. Leave a link empty to hide its icon.">
           <div className="grid gap-5 sm:grid-cols-2">
-            <TextField label="GitHub" type="url" value={profile.socials.github} onChange={(v) => setSocial('github', v)} error={errors['socials.github']} placeholder="https://github.com/…" />
-            <TextField label="LinkedIn" type="url" value={profile.socials.linkedin} onChange={(v) => setSocial('linkedin', v)} error={errors['socials.linkedin']} placeholder="https://linkedin.com/in/…" />
-            <TextField label="Instagram" type="url" value={profile.socials.instagram} onChange={(v) => setSocial('instagram', v)} error={errors['socials.instagram']} placeholder="https://instagram.com/…" />
+            {SOCIAL_PLATFORMS.map(({ key, label, placeholder }) => (
+              <TextField
+                key={key}
+                label={label}
+                type="url"
+                value={profile.socials[key] ?? ''}
+                onChange={(v) => setSocial(key, v)}
+                error={errors[`socials.${key}`]}
+                placeholder={placeholder}
+              />
+            ))}
             <div>
-              <TextField label="Email link" value={profile.socials.email} onChange={(v) => setSocial('email', v)} error={errors['socials.email']} placeholder="mailto:you@example.com" />
+              <TextField label="Email link" value={profile.socials.email ?? ''} onChange={(v) => setSocial('email', v)} error={errors['socials.email']} placeholder="mailto:you@example.com" />
               {profile.socials.email !== `mailto:${profile.email.trim()}` && profile.email.trim() && (
                 <button type="button" className="mt-1.5 text-xs text-accent-300 hover:underline" onClick={() => setSocial('email', `mailto:${profile.email.trim()}`)}>
                   Use mailto:{profile.email.trim()}

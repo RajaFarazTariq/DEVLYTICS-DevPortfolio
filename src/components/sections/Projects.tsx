@@ -9,7 +9,8 @@ import {
 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { projects } from '@/data/projects';
-import { SectionHeading } from '@/components/ui/SectionHeading';
+import { SectionHeading, headingProps } from '@/components/ui/SectionHeading';
+import { sections } from '@/data/settings';
 import { cn } from '@/utils/cn';
 
 const ROTATE_INTERVAL_MS = 5500;
@@ -43,6 +44,8 @@ export function Projects() {
   }, [paused]);
 
   const project = projects[index];
+  // Every project unpublished: nothing to show (the admin prevents this while the section is on).
+  if (!project) return null;
 
   const slideVariants = {
     enter: (dir: 1 | -1) => ({
@@ -61,15 +64,7 @@ export function Projects() {
   return (
     <section id="projects" className="relative py-16 md:py-24 lg:py-32">
       <div className="container-wide">
-        <SectionHeading
-          eyebrow="03 — Featured Work"
-          title={
-            <>
-              Selected <span className="text-gradient">Projects</span>
-            </>
-          }
-          subtitle="A rotating spotlight on recent work. Click to pause — auto-resumes never."
-        />
+        <SectionHeading {...headingProps(sections.projects)} />
 
         <div
           className="relative mt-14"

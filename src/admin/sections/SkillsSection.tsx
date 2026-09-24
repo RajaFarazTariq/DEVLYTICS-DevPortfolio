@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Pencil, Plus, Sparkles } from 'lucide-react';
+import { GripVertical, Pencil, Plus, Sparkles } from 'lucide-react';
 import type { SkillGroupContent } from '@/data/skills';
 import { skillIcons, type SkillIconName } from '@/data/skillIcons';
 import { SKILL_ACCENTS, emptySkillGroup, uniqueSlug } from '@/admin/lib/content';
@@ -7,6 +7,7 @@ import { idIssues, validateSkillGroup, type Issue } from '@/admin/lib/validate';
 import { slugify } from '@/admin/lib/images';
 import type { Confirm, Focus } from '@/admin/types';
 import { useItemEditor } from '@/admin/hooks/useItemEditor';
+import { useDragReorder } from '@/admin/hooks/useDragReorder';
 import {
   Badge,
   Drawer,
@@ -59,13 +60,14 @@ export function SkillsSection({
     });
 
   const skillTotal = groups.reduce((n, g) => n + g.items.length, 0);
+  const drag = useDragReorder((a, b) => onChange(moveItem(groups, a, b)));
 
   return (
     <div>
       <SectionHeader
         eyebrow="Content"
         title="Skills"
-        description="Skill groups and proficiency bars in the Skills Stack section."
+        description="Skill groups and proficiency bars in the Skills section. Drag cards to reorder groups; open a group to add, edit or reorder its skills."
         meta={<Badge>{skillTotal} skills · {groups.length} groups</Badge>}
         actions={
           <button type="button" className="adm-btn-primary" onClick={add}>
@@ -82,7 +84,7 @@ export function SkillsSection({
             const Icon = skillIcons[g.icon] ?? skillIcons.Wrench;
             const count = issues.filter((x) => x.index === i).length;
             return (
-              <article key={`${g.id}-${i}`} className={cn('adm-card adm-card-interactive flex flex-col', count > 0 && 'border-rose-400/25')}>
+              <article key={`${g.id}-${i}`} {...drag.itemProps(i)} className={cn('adm-card adm-card-interactive flex flex-col', count > 0 && 'border-rose-400/25', drag.stateClass(i))}>
                 <button type="button" onClick={() => editor.open(i, g)} className="flex-1 p-5 text-left">
                   <div className="flex items-center gap-3">
                     <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-white/[0.08] bg-white/[0.03]">
@@ -110,7 +112,9 @@ export function SkillsSection({
                   </ul>
                 </button>
                 <div className="flex items-center justify-between border-t border-white/[0.06] px-2.5 py-2">
-                  <span className="px-2 font-mono text-[11px] text-ink-500">#{i + 1}</span>
+                  <span className="inline-flex items-center gap-1 px-2 font-mono text-[11px] text-ink-500">
+                    <GripVertical className="h-3.5 w-3.5 cursor-grab" aria-hidden />#{i + 1}
+                  </span>
                   <div className="flex items-center gap-1">
                     <ReorderButtons index={i} length={groups.length} label={g.title || `group ${i + 1}`} onMove={(a, b) => onChange(moveItem(groups, a, b))} onDelete={() => remove(i)} />
                     <button type="button" className="adm-icon-btn" onClick={() => editor.open(i, g)} aria-label={`Edit ${g.title}`} title="Edit">

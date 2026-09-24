@@ -1,22 +1,15 @@
 import { motion } from 'framer-motion';
 import { skillGroups } from '@/data/skills';
 import { GlassCard } from '@/components/ui/GlassCard';
-import { SectionHeading } from '@/components/ui/SectionHeading';
+import { SectionHeading, headingProps } from '@/components/ui/SectionHeading';
+import { sections } from '@/data/settings';
 import { Reveal } from '@/components/ui/Reveal';
 
 export function Skills() {
   return (
     <section id="skills" className="relative pt-10 pb-16 md:pt-12 md:pb-24 lg:pt-14 lg:pb-32">
       <div className="container-wide">
-        <SectionHeading
-          eyebrow="02 — Capabilities"
-          title={
-            <>
-              Skills <span className="text-gradient">Stack</span>
-            </>
-          }
-          subtitle="What I work with day to day — from interface down to data pipeline."
-        />
+        <SectionHeading {...headingProps(sections.skills)} />
 
         <div className="mt-14 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
           {skillGroups.map((group, gIdx) => {

@@ -12,6 +12,12 @@ export const ACCEPT_IMAGES = Object.keys(ALLOWED_TYPES).join(',');
 
 const IMAGE_EXT = /\.(png|jpe?g|webp|gif|avif|svg)$/i;
 
+// Folders the admin manages files in: public path prefix <-> repository folder.
+const MANAGED_DIRS = [
+  { prefix: ADMIN_CONFIG.imagePublicPrefix, dir: ADMIN_CONFIG.imageDir },
+  { prefix: ADMIN_CONFIG.resumePublicPrefix, dir: ADMIN_CONFIG.resumeDir },
+];
+
 export type PendingUpload = {
   /** Public path used in content, e.g. /assets/projects/foo-1a2b.png */
   publicPath: string;
@@ -36,17 +42,33 @@ export function isImageFileName(name: string) {
   return IMAGE_EXT.test(name);
 }
 
-/** "/assets/projects/a.png?v=2" -> "public/assets/projects/a.png" (only for managed images). */
+export function isPdfFileName(name: string) {
+  return /\.pdf$/i.test(name);
+}
+
+/** True for files in the project image folder (as opposed to resumes). */
+export const isImageRepoPath = (repoPath: string) => repoPath.startsWith(`${ADMIN_CONFIG.imageDir}/`);
+export const isResumeRepoPath = (repoPath: string) => repoPath.startsWith(`${ADMIN_CONFIG.resumeDir}/`);
+
+/** "/assets/projects/a.png?v=2" -> "public/assets/projects/a.png" (only for managed files). */
 export function publicPathToRepoPath(publicPath: string): string | null {
   const clean = publicPath.split(/[?#]/)[0];
-  if (!clean.startsWith(ADMIN_CONFIG.imagePublicPrefix)) return null;
-  const name = clean.slice(ADMIN_CONFIG.imagePublicPrefix.length);
+  const managed = MANAGED_DIRS.find((m) => clean.startsWith(m.prefix));
+  if (!managed) return null;
+  const name = clean.slice(managed.prefix.length);
   if (!name || name.includes('/') || name.includes('..')) return null;
-  return `${ADMIN_CONFIG.imageDir}/${name}`;
+  return `${managed.dir}/${name}`;
 }
 
 export function repoPathToPublicPath(repoPath: string) {
-  return ADMIN_CONFIG.imagePublicPrefix + repoPath.slice(ADMIN_CONFIG.imageDir.length + 1);
+  const managed = MANAGED_DIRS.find((m) => repoPath.startsWith(`${m.dir}/`)) ?? MANAGED_DIRS[0];
+  return managed.prefix + repoPath.slice(managed.dir.length + 1);
+}
+
+/** GitHub's file page (renders PDFs in the browser). */
+export function githubBlobUrl(repoPath: string) {
+  const { owner, repo, branch } = ADMIN_CONFIG;
+  return `https://github.com/${owner}/${repo}/blob/${branch}/${repoPath.split('/').map(encodeURIComponent).join('/')}`;
 }
 
 /** Preview straight from the branch so freshly committed images show before Vercel redeploys. */
@@ -97,6 +119,28 @@ export async function prepareUpload(file: File, baseName: string): Promise<Pendi
   const suffix = Date.now().toString(36);
   const fileName = `${stem}-${suffix}.${ALLOWED_TYPES[type]}`;
   const repoPath = `${ADMIN_CONFIG.imageDir}/${fileName}`;
+  return {
+    repoPath,
+    publicPath: repoPathToPublicPath(repoPath),
+    base64: await readAsBase64(file),
+    previewUrl: URL.createObjectURL(file),
+    size: file.size,
+  };
+}
+
+/** Resume / CV upload: PDF only, checked by file signature. */
+export async function prepareResumeUpload(file: File, baseName: string): Promise<PendingUpload> {
+  const head = new Uint8Array(await file.slice(0, 5).arrayBuffer());
+  if (String.fromCharCode(...head) !== '%PDF-') {
+    throw new Error('Unsupported file. Upload the resume as a PDF.');
+  }
+  if (file.size > ADMIN_CONFIG.maxResumeBytes) {
+    const mb = (ADMIN_CONFIG.maxResumeBytes / 1024 / 1024).toFixed(0);
+    throw new Error(`File is ${(file.size / 1024 / 1024).toFixed(1)} MB — the limit is ${mb} MB.`);
+  }
+  const stem = slugify(baseName) || 'resume';
+  const fileName = `${stem}-${Date.now().toString(36)}.pdf`;
+  const repoPath = `${ADMIN_CONFIG.resumeDir}/${fileName}`;
   return {
     repoPath,
     publicPath: repoPathToPublicPath(repoPath),

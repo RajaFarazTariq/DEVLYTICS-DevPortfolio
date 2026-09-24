@@ -1,31 +1,7 @@
 import type { ComponentType, SVGProps } from 'react';
-import {
-  SiCss,
-  SiDjango,
-  SiDocker,
-  SiFigma,
-  SiFramer,
-  SiGit,
-  SiGithub,
-  SiHtml5,
-  SiJavascript,
-  SiMysql,
-  SiNestjs,
-  SiNodedotjs,
-  SiNumpy,
-  SiOpencv,
-  SiPandas,
-  SiPostgresql,
-  SiPostman,
-  SiPython,
-  SiReact,
-  SiSocketdotio,
-  SiTailwindcss,
-  SiThreedotjs,
-  SiTypescript,
-  SiVite,
-} from 'react-icons/si';
-import { BarChart3, BrainCircuit, Code2, ScanEye } from 'lucide-react';
+import { Wrench } from 'lucide-react';
+import { about, type MarqueeItem } from '@/data/about';
+import { techColors, techIcons } from '@/data/techIcons';
 
 type IconType = ComponentType<SVGProps<SVGSVGElement> & { className?: string }>;
 
@@ -35,50 +11,16 @@ type TechItem = {
   color: string;
 };
 
-// Theme palette
-const C = {
-  cyan: '#22d3ee',
-  sky: '#38bdf8',
-  blue: '#5e8bff',
-  violet: '#a78bfa',
-  pink: '#ec4899',
-  amber: '#fbbf24',
-  green: '#34d399',
-};
+// Items come from src/content/about.json (managed from /admin).
+const toTechItem = (item: MarqueeItem): TechItem => ({
+  name: item.name,
+  Icon: techIcons[item.icon]?.Icon ?? Wrench,
+  color: techColors[item.color] ?? techColors.blue,
+});
 
-const tools: TechItem[] = [
-  { name: 'Git', Icon: SiGit, color: C.pink },
-  { name: 'GitHub', Icon: SiGithub, color: C.violet },
-  { name: 'VS Code', Icon: Code2, color: C.blue },
-  { name: 'Docker', Icon: SiDocker, color: C.cyan },
-  { name: 'Vite', Icon: SiVite, color: C.amber },
-  { name: 'PostgreSQL', Icon: SiPostgresql, color: C.blue },
-  { name: 'MySQL', Icon: SiMysql, color: C.cyan },
-  { name: 'Pandas', Icon: SiPandas, color: C.violet },
-  { name: 'NumPy', Icon: SiNumpy, color: C.sky },
-  { name: 'OpenCV', Icon: SiOpencv, color: C.pink },
-  { name: 'Figma', Icon: SiFigma, color: C.green },
-  { name: 'Postman', Icon: SiPostman, color: C.amber },
-  { name: 'Zoho Analytics', Icon: BarChart3, color: C.green },
-];
+const tools: TechItem[] = about.tools.map(toTechItem);
 
-const technologies: TechItem[] = [
-  { name: 'React.js', Icon: SiReact, color: C.cyan },
-  { name: 'TypeScript', Icon: SiTypescript, color: C.blue },
-  { name: 'JavaScript', Icon: SiJavascript, color: C.amber },
-  { name: 'Python', Icon: SiPython, color: C.sky },
-  { name: 'Node.js', Icon: SiNodedotjs, color: C.green },
-  { name: 'Django', Icon: SiDjango, color: C.violet },
-  { name: 'NestJS', Icon: SiNestjs, color: C.pink },
-  { name: 'Tailwind CSS', Icon: SiTailwindcss, color: C.sky },
-  { name: 'Three.js', Icon: SiThreedotjs, color: C.violet },
-  { name: 'Framer Motion', Icon: SiFramer, color: C.pink },
-  { name: 'Socket.io', Icon: SiSocketdotio, color: C.cyan },
-  { name: 'HTML5', Icon: SiHtml5, color: C.amber },
-  { name: 'CSS3', Icon: SiCss, color: C.blue },
-  { name: 'YOLOv9', Icon: ScanEye, color: C.amber },
-  { name: 'LLM APIs', Icon: BrainCircuit, color: C.violet },
-];
+const technologies: TechItem[] = about.technologies.map(toTechItem);
 
 function MarqueeRow({
   items,

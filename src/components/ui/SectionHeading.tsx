@@ -1,6 +1,24 @@
 import { motion } from 'framer-motion';
 import type { ReactNode } from 'react';
+import type { SectionSettings } from '@/data/settings';
 import { fadeUp, staggerContainer } from '@/utils/motion';
+
+/** Heading props from a section's settings: "<title> <gradient>highlight</gradient>". */
+export function headingProps(s: SectionSettings) {
+  const title = s.title.trim();
+  const highlight = s.highlight.trim();
+  return {
+    eyebrow: s.eyebrow,
+    subtitle: s.subtitle,
+    title: (
+      <>
+        {title}
+        {title && highlight ? ' ' : null}
+        {highlight && <span className="text-gradient">{highlight}</span>}
+      </>
+    ),
+  };
+}
 
 type Props = {
   eyebrow: string;

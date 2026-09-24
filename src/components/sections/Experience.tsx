@@ -9,7 +9,8 @@ import {
   MapPin,
 } from 'lucide-react';
 import { experience, type PillarKey } from '@/data/experience';
-import { SectionHeading } from '@/components/ui/SectionHeading';
+import { SectionHeading, headingProps } from '@/components/ui/SectionHeading';
+import { sections } from '@/data/settings';
 
 type IconType = ComponentType<SVGProps<SVGSVGElement> & { className?: string }>;
 
@@ -49,15 +50,7 @@ export function Experience() {
   return (
     <section id="experience" className="relative py-16 md:py-24 lg:py-32">
       <div className="container-wide">
-        <SectionHeading
-          eyebrow="04 — Journey"
-          title={
-            <>
-              Experience &amp; <span className="text-gradient">Education</span>
-            </>
-          }
-          subtitle="Three disciplines, one engineer. Web, data and AI — shipped end-to-end."
-        />
+        <SectionHeading {...headingProps(sections.experience)} />
 
         <div className="mx-auto mt-14 max-w-5xl space-y-6">
           {experience.map((item, idx) => {

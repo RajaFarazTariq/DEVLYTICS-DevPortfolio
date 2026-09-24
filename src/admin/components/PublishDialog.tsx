@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { AlertTriangle, FileJson, ImagePlus, Loader2, Rocket, Trash2 } from 'lucide-react';
 import type { ContentKey } from '@/admin/config';
 import type { Issue } from '@/admin/lib/validate';
-import { formatBytes, type PendingUpload } from '@/admin/lib/images';
+import { formatBytes, isPdfFileName, type PendingUpload } from '@/admin/lib/images';
 import { Badge, IssueList, Modal } from '@/admin/components/ui';
 
 const SECTION_LABELS: Record<ContentKey, string> = {
@@ -10,6 +10,8 @@ const SECTION_LABELS: Record<ContentKey, string> = {
   projects: 'Projects',
   skills: 'Skills',
   experience: 'Experience & education',
+  about: 'About section',
+  settings: 'Section settings',
 };
 
 export function PublishDialog({
@@ -45,7 +47,7 @@ export function PublishDialog({
   useEffect(() => {
     if (!open) return;
     const parts = changedKeys.map((k) => SECTION_LABELS[k].toLowerCase());
-    if (uploads.length) parts.push('images');
+    if (uploads.length) parts.push('files');
     setMessage(`Update portfolio ${parts.join(', ') || 'media'} via admin panel`);
     setDeleteOrphans(true);
   }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -116,7 +118,7 @@ export function PublishDialog({
                   <ImagePlus className="h-4 w-4" />
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="text-ink-100">Add image</p>
+                  <p className="text-ink-100">{isPdfFileName(u.repoPath) ? 'Add resume' : 'Add image'}</p>
                   <p className="truncate font-mono text-[11px] text-ink-500">{u.repoPath}</p>
                 </div>
                 <Badge>{formatBytes(u.size)}</Badge>
@@ -128,7 +130,7 @@ export function PublishDialog({
                   <Trash2 className="h-4 w-4" />
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="text-ink-100">Delete image</p>
+                  <p className="text-ink-100">{isPdfFileName(p) ? 'Delete resume' : 'Delete image'}</p>
                   <p className="truncate font-mono text-[11px] text-ink-500">{p}</p>
                 </div>
               </li>

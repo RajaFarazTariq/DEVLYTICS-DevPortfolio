@@ -3,8 +3,13 @@ import type { Profile } from '@/data/profile';
 import type { Project } from '@/data/projects';
 import type { SkillGroupContent } from '@/data/skills';
 import type { ExperienceItem } from '@/data/experience';
+import type { About, MarqueeItem } from '@/data/about';
+import { pillarTones } from '@/data/about';
+import { SECTION_KEYS, type SiteSettings } from '@/data/settings';
+import { SOCIAL_PLATFORMS } from '@/data/socials';
 import { skillIcons } from '@/data/skillIcons';
-import { PILLARS, PROJECT_CATEGORIES, type PortfolioContent } from '@/admin/lib/content';
+import { techColors, techIcons } from '@/data/techIcons';
+import { PILLARS, PROJECT_CATEGORIES, SECTION_LABELS, type PortfolioContent } from '@/admin/lib/content';
 
 // Guards that run before anything is committed. They mirror what the public
 // components need to render safely (unique React keys, non-empty lists the
@@ -22,8 +27,8 @@ export type Issue = {
 };
 
 export type ValidationContext = {
-  /** Returns false when a managed /assets/projects/ image is missing from the repo. */
-  imageExists: (publicPath: string) => boolean;
+  /** Returns false when a managed file (/assets/projects/…, /assets/resume/…) is missing from the repo. */
+  fileExists: (publicPath: string) => boolean;
 };
 
 export const LIMITS = {
@@ -120,25 +125,30 @@ function checkIds(section: ContentKey, items: { id: string }[], label: (i: numbe
   return issues;
 }
 
-export function validateProfile(p: Profile): Issue[] {
+export function validateProfile(p: Profile, ctx: ValidationContext): Issue[] {
   const c = new Collector('profile', 'Profile');
   c.required('name', p.name, 'Name');
   c.required('tagline', p.tagline, 'Tagline');
   c.required('summary', p.summary, 'Hero summary', LIMITS.long);
-  c.required('location', p.location, 'Location');
-  c.required('phone', p.phone, 'Phone', 40);
+  c.optional('location', p.location, 'Location');
+  c.optional('phone', p.phone, 'Phone', 40);
 
   const roles = p.roles.map((r) => r.trim()).filter(Boolean);
   if (roles.length === 0) c.add('roles', 'Add at least one rotating role — the hero typewriter needs one.');
   c.tags('roles', p.roles, 'Roles');
 
   if (!EMAIL.test(p.email.trim())) c.add('email', 'Email address is not valid.');
-  c.url('socials.github', p.socials.github, 'GitHub URL', true);
-  c.url('socials.linkedin', p.socials.linkedin, 'LinkedIn URL', true);
-  c.url('socials.instagram', p.socials.instagram, 'Instagram URL', true);
-  const mail = p.socials.email.trim();
-  if (!/^mailto:/i.test(mail) || !EMAIL.test(mail.replace(/^mailto:/i, ''))) {
+  // Social links are optional: an empty link hides its icon on the site.
+  for (const { key, label } of SOCIAL_PLATFORMS) c.url(`socials.${key}`, p.socials[key], `${label} URL`);
+  const mail = (p.socials.email ?? '').trim();
+  if (mail && (!/^mailto:/i.test(mail) || !EMAIL.test(mail.replace(/^mailto:/i, '')))) {
     c.add('socials.email', 'Email link must look like mailto:you@example.com.');
+  }
+
+  const resume = (p.resume ?? '').trim();
+  if (resume) {
+    if (!/^\/assets\/resume\/[^/]+\.pdf$/i.test(resume)) c.add('resume', 'The active resume must be a PDF uploaded on the Resume page.');
+    else if (!ctx.fileExists(resume)) c.add('resume', `The active resume ${resume} does not exist in the repository.`);
   }
 
   const labels = new Set<string>();
@@ -166,7 +176,7 @@ export function validateProject(p: Project, index: number, ctx: ValidationContex
   const image = p.image.trim();
   if (!image) c.add('image', 'A project image is required.');
   else if (image.startsWith('/')) {
-    if (!ctx.imageExists(image)) c.add('image', `Image ${image} does not exist in the repository.`);
+    if (!ctx.fileExists(image)) c.add('image', `Image ${image} does not exist in the repository.`);
   } else if (!isHttpUrl(image)) {
     c.add('image', 'Image must be an uploaded file or a full https:// URL.');
   }
@@ -224,6 +234,55 @@ export function validateExperience(e: ExperienceItem, index: number): Issue[] {
   return c.issues;
 }
 
+function checkMarquee(c: Collector, field: 'tools' | 'technologies', items: MarqueeItem[], label: string) {
+  const names = new Set<string>();
+  items.forEach((m, i) => {
+    const name = m.name.trim();
+    if (!name) c.add(`${field}.${i}.name`, `${label} item ${i + 1} needs a name.`);
+    else if (name.length > 40) c.add(`${field}.${i}.name`, `"${name.slice(0, 20)}…" is too long (max 40).`);
+    if (name && names.has(name)) c.add(`${field}.${i}.name`, `"${name}" is listed twice in ${label}.`);
+    names.add(name);
+    if (!(m.icon in techIcons)) c.add(`${field}.${i}.icon`, `Choose an icon for "${name || `item ${i + 1}`}".`);
+    if (!(m.color in techColors)) c.add(`${field}.${i}.color`, `Choose a colour for "${name || `item ${i + 1}`}".`);
+  });
+}
+
+export function validateAbout(a: About): Issue[] {
+  const c = new Collector('about', 'About');
+  c.required('heading', a.heading, 'Heading');
+  if (!a.paragraphs.some((t) => t.trim())) c.add('paragraphs', 'Add at least one bio paragraph.');
+  a.paragraphs.forEach((t, i) => {
+    if (t.trim().length > LIMITS.long) c.add('paragraphs', `Paragraph ${i + 1} must be at most ${LIMITS.long} characters.`);
+  });
+  const titles = new Set<string>();
+  a.pillars.forEach((p, i) => {
+    c.required(`pillars.${i}.title`, p.title, `Card ${i + 1} title`, 60);
+    c.required(`pillars.${i}.description`, p.description, `Card ${i + 1} description`, LIMITS.summary);
+    if (p.title.trim() && titles.has(p.title.trim())) c.add(`pillars.${i}.title`, `Card title "${p.title}" is used twice.`);
+    titles.add(p.title.trim());
+    if (!(p.icon in skillIcons)) c.add(`pillars.${i}.icon`, `Choose an icon for card ${i + 1}.`);
+    if (!(p.tone in pillarTones)) c.add(`pillars.${i}.tone`, `Choose a colour for card ${i + 1}.`);
+  });
+  c.optional('marqueeLabel', a.marqueeLabel, 'Marquee label', 60);
+  checkMarquee(c, 'tools', a.tools, 'Tools');
+  checkMarquee(c, 'technologies', a.technologies, 'Technologies');
+  return c.issues;
+}
+
+export function validateSettings(s: SiteSettings): Issue[] {
+  const c = new Collector('settings', 'Sections');
+  for (const key of SECTION_KEYS) {
+    const sec = s.sections[key];
+    const label = SECTION_LABELS[key];
+    c.optional(`${key}.eyebrow`, sec.eyebrow, `${label} eyebrow`, 60);
+    c.optional(`${key}.title`, sec.title, `${label} title`, 60);
+    c.optional(`${key}.highlight`, sec.highlight, `${label} highlighted word`, 60);
+    c.optional(`${key}.subtitle`, sec.subtitle, `${label} subtitle`, LIMITS.summary);
+    if (!sec.title.trim() && !sec.highlight.trim()) c.add(`${key}.title`, `${label} needs a heading.`);
+  }
+  return c.issues;
+}
+
 export function validateSection(
   key: ContentKey,
   content: PortfolioContent,
@@ -231,11 +290,17 @@ export function validateSection(
 ): Issue[] {
   switch (key) {
     case 'profile':
-      return validateProfile(content.profile);
+      return validateProfile(content.profile, ctx);
+    case 'about':
+      return validateAbout(content.about);
+    case 'settings':
+      return validateSettings(content.settings);
     case 'projects': {
       const issues = checkIds('projects', content.projects, (i) => `Projects › ${content.projects[i].title || `#${i + 1}`}`);
       if (content.projects.length === 0) {
         issues.push({ section: 'projects', field: '', where: 'Projects', message: 'Keep at least one project — the carousel cannot render an empty list.' });
+      } else if (content.settings.sections.projects.visible && !content.projects.some((p) => !p.hidden)) {
+        issues.push({ section: 'projects', field: '', where: 'Projects', message: 'Publish at least one project, or hide the Projects section on the Sections page.' });
       }
       content.projects.forEach((p, i) => issues.push(...validateProject(p, i, ctx)));
       return issues;

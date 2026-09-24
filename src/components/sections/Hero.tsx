@@ -1,7 +1,9 @@
 import { lazy, Suspense, useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowRight, Github, Instagram, Linkedin, Mail } from 'lucide-react';
+import { ArrowRight, Download } from 'lucide-react';
 import { profile } from '@/data/profile';
+import { isSectionVisible } from '@/data/settings';
+import { socialLinks } from '@/data/socials';
 import { fadeUp, staggerContainer } from '@/utils/motion';
 
 const HeroScene = lazy(() =>
@@ -53,6 +55,8 @@ function LiveIndicator() {
   );
 }
 
+const socials = socialLinks({ emailFirst: true });
+
 export function Hero() {
   return (
     <section id="home" className="relative min-h-screen overflow-hidden pt-24 md:pt-28">
@@ -100,53 +104,40 @@ export function Hero() {
           </motion.p>
 
           <motion.div variants={fadeUp} className="mt-9 flex flex-wrap gap-3">
-            <a href="#projects" className="btn-cyan group">
-              View Projects
-              <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
-            </a>
-            <a href="#contact" className="btn-ghost">
-              Contact Me
-            </a>
+            {isSectionVisible('projects') && (
+              <a href="#projects" className="btn-cyan group">
+                View Projects
+                <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
+              </a>
+            )}
+            {isSectionVisible('contact') && (
+              <a href="#contact" className="btn-ghost">
+                Contact Me
+              </a>
+            )}
+            {profile.resume && (
+              <a href={profile.resume} target="_blank" rel="noreferrer" className="btn-ghost">
+                <Download className="h-4 w-4" />
+                Download CV
+              </a>
+            )}
           </motion.div>
 
           <motion.div
             variants={fadeUp}
             className="mt-10 flex items-center gap-5 text-muted"
           >
-            <a
-              href={profile.socials.email}
-              className="transition hover:text-cyan-300"
-              aria-label="Email"
-            >
-              <Mail className="h-5 w-5" />
-            </a>
-            <a
-              href={profile.socials.github}
-              target="_blank"
-              rel="noreferrer"
-              className="transition hover:text-cyan-300"
-              aria-label="GitHub"
-            >
-              <Github className="h-5 w-5" />
-            </a>
-            <a
-              href={profile.socials.linkedin}
-              target="_blank"
-              rel="noreferrer"
-              className="transition hover:text-cyan-300"
-              aria-label="LinkedIn"
-            >
-              <Linkedin className="h-5 w-5" />
-            </a>
-            <a
-              href={profile.socials.instagram}
-              target="_blank"
-              rel="noreferrer"
-              className="transition hover:text-cyan-300"
-              aria-label="Instagram"
-            >
-              <Instagram className="h-5 w-5" />
-            </a>
+            {socials.map((social) => (
+              <a
+                key={social.key}
+                href={social.href}
+                {...(social.external ? { target: '_blank', rel: 'noreferrer' } : {})}
+                className="transition hover:text-cyan-300"
+                aria-label={social.label}
+              >
+                <social.icon className="h-5 w-5" />
+              </a>
+            ))}
           </motion.div>
         </motion.div>
 

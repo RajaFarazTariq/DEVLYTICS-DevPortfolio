@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Menu, Moon, Send, Sun, X } from 'lucide-react';
 import { navLinks } from '@/data/nav';
+import { isSectionVisible } from '@/data/settings';
 import { useTheme } from '@/hooks/useTheme';
 import { useScrollSpy } from '@/hooks/useScrollSpy';
 import { cn } from '@/utils/cn';
@@ -111,13 +112,15 @@ export function Navbar() {
               </AnimatePresence>
             </button>
 
-            <a
-              href="#contact"
-              className="hidden items-center gap-2 rounded-full bg-gradient-to-r from-cyan-400 to-cyan-500 px-4 py-2 text-sm font-semibold text-[#021a26] shadow-[0_8px_24px_-8px_rgba(34,211,238,0.55)] transition hover:brightness-110 sm:inline-flex"
-            >
-              <Send className="h-3.5 w-3.5" />
-              Contact
-            </a>
+            {isSectionVisible('contact') && (
+              <a
+                href="#contact"
+                className="hidden items-center gap-2 rounded-full bg-gradient-to-r from-cyan-400 to-cyan-500 px-4 py-2 text-sm font-semibold text-[#021a26] shadow-[0_8px_24px_-8px_rgba(34,211,238,0.55)] transition hover:brightness-110 sm:inline-flex"
+              >
+                <Send className="h-3.5 w-3.5" />
+                Contact
+              </a>
+            )}
 
             <button
               onClick={() => setOpen((o) => !o)}

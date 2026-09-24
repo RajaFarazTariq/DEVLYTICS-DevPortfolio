@@ -1,15 +1,17 @@
 import { useEffect, useState } from 'react';
-import { Briefcase, GraduationCap, MapPin, Pencil, Plus } from 'lucide-react';
+import { Briefcase, GraduationCap, GripVertical, MapPin, Pencil, Plus } from 'lucide-react';
 import type { ExperienceItem, Pillar } from '@/data/experience';
 import { LIMITS, idIssues, validateExperience, type Issue } from '@/admin/lib/validate';
 import { PILLARS, emptyExperience, uniqueSlug } from '@/admin/lib/content';
 import { slugify } from '@/admin/lib/images';
 import type { Confirm, Focus } from '@/admin/types';
 import { useItemEditor } from '@/admin/hooks/useItemEditor';
+import { useDragReorder } from '@/admin/hooks/useDragReorder';
 import {
   Badge,
   Drawer,
   EmptyState,
+  FilterTabs,
   FormSection,
   IssueList,
   LineListEditor,
@@ -19,11 +21,23 @@ import {
   TagInput,
   TextAreaField,
   TextField,
+  Toggle,
   moveItem,
 } from '@/admin/components/ui';
 import { cn } from '@/utils/cn';
 
 const ROW_COLUMNS = 'md:grid-cols-[minmax(0,1fr)_10rem_11rem_9.5rem]';
+
+// "2022 — Present" <-> { start, end }. Anything else (e.g. "Graduated") is kept as custom text.
+const PERIOD = /^(.+?)\s+[—–-]\s+(.+)$/;
+const PRESENT = 'Present';
+
+function parsePeriod(period: string) {
+  const m = PERIOD.exec(period.trim());
+  return m ? { start: m[1], end: m[2] } : null;
+}
+
+const isCurrent = (period: string) => parsePeriod(period)?.end.toLowerCase() === PRESENT.toLowerCase();
 
 export function ExperienceSection({
   items,
@@ -66,12 +80,16 @@ export function ExperienceSection({
 
   const workCount = items.filter((e) => e.type === 'work').length;
 
+  const [filter, setFilter] = useState<'all' | ExperienceItem['type']>('all');
+  const rows = items.map((e, i) => ({ e, i })).filter(({ e }) => filter === 'all' || e.type === filter);
+  const drag = useDragReorder((a, b) => onChange(moveItem(items, a, b)), filter === 'all');
+
   return (
     <div>
       <SectionHeader
         eyebrow="Content"
         title="Experience & Education"
-        description="Timeline cards, shown in this order. Work and education entries share one list."
+        description="Timeline cards, shown in this order. Work and education entries share one list — drag rows to reorder."
         meta={<Badge>{workCount} work · {items.length - workCount} education</Badge>}
         actions={
           <>
@@ -85,8 +103,29 @@ export function ExperienceSection({
         }
       />
 
+      {items.length > 0 && (
+        <div className="mb-4 flex flex-wrap items-center gap-3">
+          <FilterTabs
+            value={filter}
+            onChange={setFilter}
+            options={[
+              { value: 'all', label: 'All', count: items.length },
+              { value: 'work', label: 'Work', count: workCount },
+              { value: 'education', label: 'Education', count: items.length - workCount },
+            ]}
+          />
+          {filter !== 'all' && <span className="text-xs text-ink-500">Switch to All to drag-reorder.</span>}
+        </div>
+      )}
+
       {items.length === 0 ? (
         <EmptyState icon={Briefcase} title="Nothing here yet" description="Add your work experience or education." />
+      ) : rows.length === 0 ? (
+        <EmptyState
+          icon={filter === 'education' ? GraduationCap : Briefcase}
+          title={filter === 'education' ? 'No education entries' : 'No work entries'}
+          description="Use the buttons above to add one."
+        />
       ) : (
         <div className="adm-card overflow-hidden">
           <div className={`adm-table-head md:grid md:gap-4 ${ROW_COLUMNS}`}>
@@ -95,12 +134,13 @@ export function ExperienceSection({
             <span>Location</span>
             <span className="text-right">Actions</span>
           </div>
-          {items.map((e, i) => {
+          {rows.map(({ e, i }) => {
             const Icon = e.type === 'education' ? GraduationCap : Briefcase;
             const count = issues.filter((x) => x.index === i).length;
             return (
-              <div key={`${e.id}-${i}`} className={cn('adm-table-row grid items-center gap-3 md:gap-4', ROW_COLUMNS)}>
+              <div key={`${e.id}-${i}`} {...drag.itemProps(i)} className={cn('adm-table-row grid items-center gap-3 md:gap-4', ROW_COLUMNS, drag.stateClass(i))}>
                 <button type="button" onClick={() => editor.open(i, e)} className="flex min-w-0 items-center gap-3 text-left">
+                  {filter === 'all' && <GripVertical className="-ml-2 hidden h-4 w-4 shrink-0 cursor-grab text-ink-600 md:block" aria-hidden />}
                   <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-cyan-400/20 bg-cyan-500/[0.06]">
                     <Icon className="h-4 w-4 text-cyan-300" />
                   </span>
@@ -108,6 +148,7 @@ export function ExperienceSection({
                     <span className="flex flex-wrap items-center gap-2">
                       <span className="truncate font-display text-[15px] font-semibold text-ink-50">{e.role || 'Untitled'}</span>
                       <Badge tone={e.type === 'education' ? 'neutral' : 'accent'}>{e.type === 'education' ? 'Education' : 'Work'}</Badge>
+                      {isCurrent(e.period) && <Badge tone="success">Current</Badge>}
                       {count > 0 && <Badge tone="danger">{count} issue{count > 1 ? 's' : ''}</Badge>}
                     </span>
                     <span className="mt-0.5 block truncate text-sm text-ink-400">{e.company}</span>
@@ -226,9 +267,9 @@ function ExperienceForm({
         />
         <div className="grid gap-4 sm:grid-cols-2">
           <TextField label={isEducation ? 'Institution' : 'Company'} value={value.company} onChange={(v) => set('company', v)} error={errors.company} />
-          <TextField label="Period" value={value.period} onChange={(v) => set('period', v)} error={errors.period} placeholder="2022 — Present" />
+          <TextField label="Location (optional)" value={value.location ?? ''} onChange={(v) => set('location', v)} error={errors.location} />
         </div>
-        <TextField label="Location (optional)" value={value.location ?? ''} onChange={(v) => set('location', v)} error={errors.location} />
+        <PeriodEditor value={value.period} onChange={(v) => set('period', v)} error={errors.period} isEducation={isEducation} />
       </FormSection>
 
       <FormSection title="Summary & highlights">
@@ -296,5 +337,73 @@ function ExperienceForm({
         ))}
       </section>
     </>
+  );
+}
+
+/** Start / end / "current" controls that write the period text shown on the site (e.g. "2022 — Present"). */
+function PeriodEditor({
+  value,
+  onChange,
+  error,
+  isEducation,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  error?: string;
+  isEducation: boolean;
+}) {
+  const parsed = parsePeriod(value);
+  const [custom, setCustom] = useState(() => value.trim() !== '' && !parsed);
+  // Kept locally so a half-filled pair (only a start, or only an end) isn't lost between renders.
+  const [start, setStart] = useState(parsed?.start ?? (parsed ? '' : value.trim()));
+  const [end, setEnd] = useState(parsed?.end ?? '');
+  const current = end.toLowerCase() === PRESENT.toLowerCase();
+  const write = (s: string, e: string) => {
+    setStart(s);
+    setEnd(e);
+    onChange(s.trim() && e.trim() ? `${s.trim()} — ${e.trim()}` : s.trim() || e.trim());
+  };
+
+  return (
+    <div className="space-y-3 rounded-xl border border-white/[0.07] bg-white/[0.02] p-4">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-sm font-medium text-ink-100">Period</p>
+        <FilterTabs
+          value={custom ? 'custom' : 'dates'}
+          onChange={(v) => setCustom(v === 'custom')}
+          options={[
+            { value: 'dates', label: 'Start / end' },
+            { value: 'custom', label: 'Custom text' },
+          ]}
+        />
+      </div>
+      {custom ? (
+        <TextField
+          label="Period text"
+          value={value}
+          onChange={onChange}
+          error={error}
+          placeholder={isEducation ? 'Graduated' : '2022 — Present'}
+          hint="Shown exactly as typed, e.g. “Graduated” or “Summer 2023”."
+        />
+      ) : (
+        <>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <TextField label="Start" value={start} onChange={(s) => write(s, end)} placeholder="2022 or Jan 2022" />
+            <TextField label="End" value={current ? PRESENT : end} onChange={(e) => write(start, e)} placeholder="2024" disabled={current} />
+          </div>
+          <Toggle
+            checked={current}
+            onChange={(on) => write(start, on ? PRESENT : '')}
+            label={isEducation ? 'Currently studying here' : 'I currently work here'}
+            description="Shows “Present” as the end date."
+          />
+          <p className="adm-hint">
+            Shown on the site as: <span className="font-mono text-cyan-300/90">{value || '—'}</span>
+          </p>
+          {error && <p className="adm-error">{error}</p>}
+        </>
+      )}
+    </div>
   );
 }

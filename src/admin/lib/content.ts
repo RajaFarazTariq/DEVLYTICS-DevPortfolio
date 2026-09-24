@@ -2,6 +2,9 @@ import type { Profile } from '@/data/profile';
 import type { Project, ProjectCategory } from '@/data/projects';
 import type { SkillGroupContent } from '@/data/skills';
 import type { ExperienceItem, Pillar, PillarKey } from '@/data/experience';
+import type { About, AboutPillar, MarqueeItem, PillarTone } from '@/data/about';
+import { SECTION_KEYS, type SectionSettings, type SiteSettings } from '@/data/settings';
+import { SOCIAL_PLATFORMS } from '@/data/socials';
 import type { ContentKey } from '@/admin/config';
 
 export type PortfolioContent = {
@@ -9,6 +12,28 @@ export type PortfolioContent = {
   projects: Project[];
   skills: SkillGroupContent[];
   experience: ExperienceItem[];
+  about: About;
+  settings: SiteSettings;
+};
+
+/** Content files holding one object (the rest hold a list). */
+const OBJECT_KEYS: ContentKey[] = ['profile', 'about', 'settings'];
+
+export const PILLAR_TONES: { value: PillarTone; label: string }[] = [
+  { value: 'blue', label: 'Blue → violet' },
+  { value: 'violet', label: 'Violet → pink' },
+  { value: 'pink', label: 'Pink → amber' },
+  { value: 'amber', label: 'Amber → pink' },
+  { value: 'emerald', label: 'Emerald → cyan' },
+  { value: 'cyan', label: 'Cyan → blue' },
+];
+
+export const SECTION_LABELS: Record<keyof SiteSettings['sections'], string> = {
+  about: 'About',
+  skills: 'Skills',
+  projects: 'Projects',
+  experience: 'Experience & Education',
+  contact: 'Contact',
 };
 
 export const PROJECT_CATEGORIES: ProjectCategory[] = [
@@ -77,18 +102,22 @@ export function normalizeProfile(p: Profile): Profile {
   out.location = str(p.location);
   out.email = str(p.email);
   out.phone = str(p.phone);
-  out.socials = {
-    ...p.socials,
+  // The original four links are always present (empty = hidden); other platforms only when set.
+  const socials: Profile['socials'] = {
     github: str(p.socials.github),
     linkedin: str(p.socials.linkedin),
     instagram: str(p.socials.instagram),
     email: str(p.socials.email),
   };
+  for (const { key } of SOCIAL_PLATFORMS) optional(socials, key, str(p.socials[key]));
+  out.socials = socials;
   out.stats = p.stats.map((s) => ({
     label: str(s.label),
     value: Number(s.value),
     suffix: str(s.suffix),
   }));
+  delete out.resume;
+  optional(out, 'resume', str(p.resume));
   return out;
 }
 
@@ -108,6 +137,7 @@ export function normalizeProject(p: Project): Project {
   optional(links, 'github', str(p.links?.github));
   optional(links, 'demo', str(p.links?.demo));
   out.links = links;
+  if (p.hidden) out.hidden = true;
   return out as Project;
 }
 
@@ -146,6 +176,41 @@ export function normalizeExperience(e: ExperienceItem): ExperienceItem {
   return out as ExperienceItem;
 }
 
+function normalizeMarqueeItem(m: MarqueeItem): MarqueeItem {
+  return { name: str(m.name), icon: str(m.icon), color: m.color };
+}
+
+function normalizeAboutPillar(p: AboutPillar): AboutPillar {
+  return { icon: p.icon, title: str(p.title), description: str(p.description), tone: p.tone };
+}
+
+export function normalizeAbout(a: About): About {
+  return {
+    heading: str(a.heading),
+    paragraphs: strList(a.paragraphs),
+    pillars: a.pillars.map(normalizeAboutPillar),
+    marqueeLabel: str(a.marqueeLabel),
+    tools: a.tools.map(normalizeMarqueeItem),
+    technologies: a.technologies.map(normalizeMarqueeItem),
+  };
+}
+
+function normalizeSectionSettings(s: SectionSettings): SectionSettings {
+  return {
+    visible: s.visible !== false,
+    eyebrow: str(s.eyebrow),
+    title: str(s.title),
+    highlight: str(s.highlight),
+    subtitle: str(s.subtitle),
+  };
+}
+
+export function normalizeSettings(s: SiteSettings): SiteSettings {
+  const sections = {} as SiteSettings['sections'];
+  for (const key of SECTION_KEYS) sections[key] = normalizeSectionSettings(s.sections[key]);
+  return { ...s, sections };
+}
+
 export function normalizeSection<K extends ContentKey>(
   key: K,
   value: PortfolioContent[K],
@@ -159,6 +224,10 @@ export function normalizeSection<K extends ContentKey>(
       return (value as SkillGroupContent[]).map(normalizeSkillGroup) as PortfolioContent[K];
     case 'experience':
       return (value as ExperienceItem[]).map(normalizeExperience) as PortfolioContent[K];
+    case 'about':
+      return normalizeAbout(value as About) as PortfolioContent[K];
+    case 'settings':
+      return normalizeSettings(value as SiteSettings) as PortfolioContent[K];
     default:
       return value;
   }
@@ -177,9 +246,19 @@ export function parseSection(key: ContentKey, text: string): unknown {
   } catch {
     throw new Error(`${key}.json on GitHub is not valid JSON. Fix it in the repository before editing.`);
   }
-  const isList = key !== 'profile';
+  const isList = !OBJECT_KEYS.includes(key);
   if (isList ? !Array.isArray(data) : typeof data !== 'object' || data === null || Array.isArray(data)) {
     throw new Error(`${key}.json on GitHub has an unexpected shape (expected ${isList ? 'a list' : 'an object'}).`);
+  }
+  const obj = data as Record<string, unknown>;
+  if (key === 'settings') {
+    const sections = obj.sections as Record<string, unknown> | undefined;
+    if (!sections || SECTION_KEYS.some((k) => typeof sections[k] !== 'object' || sections[k] === null)) {
+      throw new Error(`settings.json on GitHub is missing a section (expected ${SECTION_KEYS.join(', ')}).`);
+    }
+  }
+  if (key === 'about' && ['paragraphs', 'pillars', 'tools', 'technologies'].some((k) => !Array.isArray(obj[k]))) {
+    throw new Error('about.json on GitHub has an unexpected shape (paragraphs, pillars, tools and technologies must be lists).');
   }
   return data;
 }
@@ -204,6 +283,16 @@ export function emptyProject(id: string): Project {
     image: '',
     accent: PROJECT_ACCENTS[0],
     links: {},
+  };
+}
+
+/** Copy of a project for "Duplicate": new unique id, unpublished until reviewed. */
+export function duplicateProject(p: Project, takenIds: string[]): Project {
+  return {
+    ...structuredClone(p),
+    id: uniqueSlug(`${p.id}-copy`, takenIds),
+    title: `${p.title} (copy)`,
+    hidden: true,
   };
 }
 

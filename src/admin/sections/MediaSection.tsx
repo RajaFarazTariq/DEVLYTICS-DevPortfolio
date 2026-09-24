@@ -1,9 +1,9 @@
 import { useState, type ChangeEvent } from 'react';
-import { Check, Copy, Images, Info, Loader2, Trash2, Undo2, Upload } from 'lucide-react';
+import { Check, Copy, Images, Info, Loader2, SearchX, Trash2, Undo2, Upload } from 'lucide-react';
 import { ACCEPT_IMAGES, formatBytes, prepareUpload } from '@/admin/lib/images';
 import type { Confirm, MediaApi } from '@/admin/types';
 import { ImageThumb } from '@/admin/components/ImageThumb';
-import { Badge, EmptyState, SectionHeader } from '@/admin/components/ui';
+import { Badge, EmptyState, FilterTabs, SearchInput, SectionHeader } from '@/admin/components/ui';
 import { cn } from '@/utils/cn';
 
 export function MediaSection({ media, confirm }: { media: MediaApi; confirm: Confirm }) {
@@ -40,13 +40,19 @@ export function MediaSection({ media, confirm }: { media: MediaApi; confirm: Con
   };
 
   const unused = media.items.filter((m) => m.usedBy.length === 0 && !m.markedForDeletion).length;
+  const [query, setQuery] = useState('');
+  const [usage, setUsage] = useState<'all' | 'used' | 'unused'>('all');
+  const q = query.trim().toLowerCase();
+  const shown = media.items
+    .filter((m) => usage === 'all' || (usage === 'used' ? m.usedBy.length > 0 : m.usedBy.length === 0))
+    .filter((m) => !q || m.name.toLowerCase().includes(q) || m.usedBy.some((u) => u.toLowerCase().includes(q)));
 
   return (
     <div>
       <SectionHeader
         eyebrow="Assets"
         title="Media"
-        description="Project images stored in public/assets/projects. Images a project still uses can't be deleted."
+        description="Project images stored in public/assets/projects. An image can be reused by several projects; images a project still uses can't be deleted."
         meta={
           media.items.length > 0 ? (
             <Badge>
@@ -70,11 +76,28 @@ export function MediaSection({ media, confirm }: { media: MediaApi; confirm: Con
         </p>
       )}
 
+      {media.items.length > 0 && (
+        <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center">
+          <SearchInput value={query} onChange={setQuery} placeholder="Search file or project name" className="sm:max-w-xs sm:flex-1" />
+          <FilterTabs
+            value={usage}
+            onChange={setUsage}
+            options={[
+              { value: 'all', label: 'All', count: media.items.length },
+              { value: 'used', label: 'In use', count: media.items.length - media.items.filter((m) => m.usedBy.length === 0).length },
+              { value: 'unused', label: 'Unused', count: media.items.filter((m) => m.usedBy.length === 0).length },
+            ]}
+          />
+        </div>
+      )}
+
       {media.items.length === 0 ? (
         <EmptyState icon={Images} title="No images" description="Upload an image here, or from a project's editor." />
+      ) : shown.length === 0 ? (
+        <EmptyState icon={SearchX} title="No matching images" description="Try another search or filter." />
       ) : (
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {media.items.map((m) => (
+          {shown.map((m) => (
             <article key={m.repoPath} className={cn('adm-card adm-card-interactive flex flex-col overflow-hidden', m.markedForDeletion && 'opacity-60')}>
               <div className="relative">
                 <ImageThumb src={media.resolve(m.publicPath)} fallback={m.publicPath} alt={m.name} className="adm-checker aspect-[16/10] w-full border-b border-white/[0.06]" />

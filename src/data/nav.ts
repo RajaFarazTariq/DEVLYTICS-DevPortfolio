@@ -1,6 +1,8 @@
+import { isSectionVisible } from '@/data/settings';
+
 export type NavLink = { id: string; label: string };
 
-export const navLinks: NavLink[] = [
+const allNavLinks: NavLink[] = [
   { id: 'home', label: 'Home' },
   { id: 'about', label: 'About' },
   { id: 'skills', label: 'Skills' },
@@ -8,6 +10,9 @@ export const navLinks: NavLink[] = [
   { id: 'experience', label: 'Experience' },
   { id: 'contact', label: 'Contact' },
 ];
+
+// Sections switched off in /admin are left out of the navigation.
+export const navLinks = allNavLinks.filter((l) => isSectionVisible(l.id));
 
 export const marqueeTech = [
   'React.js',

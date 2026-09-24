@@ -53,6 +53,8 @@ export type DeployState =
 
 export type DeployStatus = { state: DeployState; url?: string };
 
+export type CommitSummary = { sha: string; url: string; message: string; author: string; date: string };
+
 function encodePath(path: string) {
   return path.split('/').map(encodeURIComponent).join('/');
 }
@@ -217,6 +219,25 @@ export function createGitHubClient(getToken: (force?: boolean) => Promise<string
         throw err;
       }
       return commit.sha;
+    },
+
+    /** Recent commits on the branch that touched `path` (for the dashboard's "Recent updates"). */
+    async listCommits(path: string, perPage = 6): Promise<CommitSummary[]> {
+      const commits = await request<
+        Array<{
+          sha: string;
+          html_url: string;
+          commit: { message: string; author: { name: string; date: string } | null };
+          author: { login: string } | null;
+        }>
+      >(`${repoPath}/commits?sha=${encodeURIComponent(branch)}&path=${encodeURIComponent(path)}&per_page=${perPage}`);
+      return commits.map((c) => ({
+        sha: c.sha,
+        url: c.html_url,
+        message: c.commit.message.split('\n')[0],
+        author: c.author?.login ?? c.commit.author?.name ?? 'unknown',
+        date: c.commit.author?.date ?? '',
+      }));
     },
 
     /** Latest Vercel deployment status for a commit (needs "Deployments: Read"). */

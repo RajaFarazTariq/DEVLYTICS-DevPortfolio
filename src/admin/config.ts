@@ -18,6 +18,11 @@ export const ADMIN_CONFIG = {
   maxImageBytes: 4 * 1024 * 1024,
   imageDir: 'public/assets/projects',
   imagePublicPrefix: '/assets/projects/',
+
+  // Resume / CV uploads (PDF only).
+  maxResumeBytes: 10 * 1024 * 1024,
+  resumeDir: 'public/assets/resume',
+  resumePublicPrefix: '/assets/resume/',
 } as const;
 
 export const CONTENT_FILES = {
@@ -25,6 +30,8 @@ export const CONTENT_FILES = {
   projects: 'src/content/projects.json',
   skills: 'src/content/skills.json',
   experience: 'src/content/experience.json',
+  about: 'src/content/about.json',
+  settings: 'src/content/settings.json',
 } as const;
 
 export type ContentKey = keyof typeof CONTENT_FILES;
