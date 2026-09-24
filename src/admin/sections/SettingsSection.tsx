@@ -75,7 +75,8 @@ export function SettingsSection({
                 {s.subtitle && <p className="mx-auto mt-2 max-w-xl text-sm text-ink-400">{s.subtitle}</p>}
               </div>
 
-              <div className="grid gap-4 sm:grid-cols-3">
+              <div className="grid gap-4 sm:grid-cols-4">
+                <TextField label="Menu label" value={s.navLabel} onChange={(navLabel) => setSection(key, { navLabel })} error={errors[`${key}.navLabel`]} />
                 <TextField label="Eyebrow" value={s.eyebrow} onChange={(eyebrow) => setSection(key, { eyebrow })} error={errors[`${key}.eyebrow`]} placeholder="01 — Introduction" />
                 <TextField label="Title" value={s.title} onChange={(title) => setSection(key, { title })} error={errors[`${key}.title`]} />
                 <TextField label="Highlighted word" value={s.highlight} onChange={(highlight) => setSection(key, { highlight })} error={errors[`${key}.highlight`]} />

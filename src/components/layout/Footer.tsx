@@ -1,6 +1,7 @@
 import { ArrowUp } from 'lucide-react';
 import { profile } from '@/data/profile';
 import { socialLinks } from '@/data/socials';
+import { fillText, site, text } from '@/data/settings';
 
 const socials = socialLinks({ emailFirst: true });
 
@@ -12,15 +13,15 @@ export function Footer() {
           <div>
             <div className="flex items-center gap-3">
               <span className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-accent-500 to-violet-600 font-display text-sm font-bold text-white shadow-glow">
-                D
+                {site.logoLetter}
               </span>
               <div className="leading-tight">
-                <p className="font-display font-bold">Devlytics</p>
+                <p className="font-display font-bold">{site.brandHighlight}{site.brandRest}</p>
                 <p className="text-xs text-muted">{profile.tagline}</p>
               </div>
             </div>
             <p className="mt-4 max-w-md text-sm text-muted">
-              Designed and engineered by {profile.name}.
+              {fillText(text.footerCredit, { name: profile.name })}
             </p>
           </div>
 
@@ -42,12 +43,12 @@ export function Footer() {
         <div className="divider-line mt-10" />
 
         <div className="mt-6 flex flex-col items-start justify-between gap-3 text-xs text-muted sm:flex-row sm:items-center">
-          <p>© {new Date().getFullYear()} Devlytics · All rights reserved.</p>
+          <p>{fillText(text.footerCopyright, { year: new Date().getFullYear() })}</p>
           <a
             href="#home"
             className="inline-flex items-center gap-2 rounded-full border border-[rgb(var(--border))] px-3 py-1.5 transition hover:border-accent-400/60 hover:text-accent-300"
           >
-            Back to top <ArrowUp className="h-3.5 w-3.5" />
+            {text.footerBackToTop} <ArrowUp className="h-3.5 w-3.5" />
           </a>
         </div>
       </div>

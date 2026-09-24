@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Menu, Moon, Send, Sun, X } from 'lucide-react';
 import { navLinks } from '@/data/nav';
-import { isSectionVisible } from '@/data/settings';
+import { isSectionVisible, site, text } from '@/data/settings';
 import { useTheme } from '@/hooks/useTheme';
 import { useScrollSpy } from '@/hooks/useScrollSpy';
 import { cn } from '@/utils/cn';
@@ -41,11 +41,11 @@ export function Navbar() {
         >
           <a href="#home" className="group flex items-center gap-3">
             <span className="relative grid h-9 w-9 place-items-center rounded-xl border-2 border-cyan-400/80 bg-transparent font-mono text-sm font-bold text-[rgb(var(--fg))] shadow-[0_0_18px_-2px_rgba(34,211,238,0.35)] transition group-hover:border-cyan-300 group-hover:shadow-[0_0_24px_-2px_rgba(34,211,238,0.55)]">
-              D
+              {site.logoLetter}
             </span>
             <span className="font-mono text-sm font-semibold tracking-tight md:text-base">
               <span className="text-cyan-400">&lt;</span>
-              <span className="text-[rgb(var(--fg))]">Devlytics</span>
+              <span className="text-[rgb(var(--fg))]">{site.brandHighlight}{site.brandRest}</span>
               <span className="text-cyan-400">/&gt;</span>
             </span>
           </a>
@@ -118,7 +118,7 @@ export function Navbar() {
                 className="hidden items-center gap-2 rounded-full bg-gradient-to-r from-cyan-400 to-cyan-500 px-4 py-2 text-sm font-semibold text-[#021a26] shadow-[0_8px_24px_-8px_rgba(34,211,238,0.55)] transition hover:brightness-110 sm:inline-flex"
               >
                 <Send className="h-3.5 w-3.5" />
-                Contact
+                {text.navContactButton}
               </a>
             )}
 

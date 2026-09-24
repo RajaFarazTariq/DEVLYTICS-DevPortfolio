@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Briefcase, GraduationCap, GripVertical, MapPin, Pencil, Plus } from 'lucide-react';
-import type { ExperienceItem, Pillar } from '@/data/experience';
+import { pillarIcon, pillarStyle, pillarStyles, type ExperienceItem, type Pillar } from '@/data/experience';
+import { skillIcons, type SkillIconName } from '@/data/skillIcons';
 import { LIMITS, idIssues, validateExperience, type Issue } from '@/admin/lib/validate';
-import { PILLARS, emptyExperience, uniqueSlug } from '@/admin/lib/content';
+import { PILLAR_STYLE_OPTIONS, emptyExperience, uniqueSlug } from '@/admin/lib/content';
 import { slugify } from '@/admin/lib/images';
 import type { Confirm, Focus } from '@/admin/types';
 import { useItemEditor } from '@/admin/hooks/useItemEditor';
@@ -226,7 +227,8 @@ function ExperienceForm({
   const set = <K extends keyof ExperienceItem>(key: K, v: ExperienceItem[K]) => onChange({ ...value, [key]: v });
   const setPillar = (i: number, patch: Partial<Pillar>) =>
     set('pillars', pillars.map((p, k) => (k === i ? { ...p, ...patch } : p)));
-  const unusedPillar = PILLARS.find((p) => !pillars.some((x) => x.key === p.key));
+  const addPillar = () =>
+    set('pillars', [...pillars, { key: uniqueSlug('column', pillars.map((p) => p.key)), name: '', description: '', bullets: [], stack: [], icon: 'Code2', style: 'cyan' }]);
 
   return (
     <>
@@ -293,28 +295,36 @@ function ExperienceForm({
       <section className="space-y-3 rounded-xl border border-white/[0.07] bg-white/[0.02] p-4">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <p className="text-sm font-medium text-ink-100">Disciplines (optional)</p>
-            <p className="text-xs text-ink-400">The three-column Web / Data / AI breakdown used on your main role.</p>
+            <p className="text-sm font-medium text-ink-100">Discipline columns (optional)</p>
+            <p className="text-xs text-ink-400">The column breakdown inside an entry (e.g. Web / Data / AI on your main role). Each column has its own icon and colour.</p>
           </div>
-          {unusedPillar && (
-            <button
-              type="button"
-              className="adm-btn-secondary adm-btn-sm"
-              onClick={() => set('pillars', [...pillars, { key: unusedPillar.key, name: unusedPillar.label, description: '', bullets: [], stack: [] }])}
-            >
-              <Plus className="h-3.5 w-3.5" /> Add
-            </button>
-          )}
+          <button type="button" className="adm-btn-secondary adm-btn-sm" onClick={addPillar}>
+            <Plus className="h-3.5 w-3.5" /> Add column
+          </button>
         </div>
-        {pillars.map((p, i) => (
+        {pillars.map((p, i) => {
+          const style = pillarStyles[pillarStyle(p)] ?? pillarStyles.cyan;
+          const Icon = skillIcons[pillarIcon(p)] ?? skillIcons.Code2;
+          return (
           <div key={i} className="space-y-4 rounded-xl border border-white/[0.07] bg-ink-950/50 p-4">
             <div className="flex items-end gap-3">
+              <span className={cn('mb-1 grid h-10 w-10 shrink-0 place-items-center rounded-lg border bg-ink-900', style.border)}>
+                <Icon className={cn('h-4 w-4', style.text)} />
+              </span>
               <SelectField
-                label="Discipline"
-                value={p.key}
-                options={PILLARS.map((x) => ({ value: x.key, label: x.label }))}
-                onChange={(key) => setPillar(i, { key })}
-                error={errors[`pillars.${i}.key`]}
+                label="Icon"
+                value={pillarIcon(p)}
+                options={(Object.keys(skillIcons) as SkillIconName[]).map((k) => ({ value: k, label: k }))}
+                onChange={(icon) => setPillar(i, { icon })}
+                error={errors[`pillars.${i}.icon`]}
+                className="flex-1"
+              />
+              <SelectField
+                label="Colour"
+                value={pillarStyle(p)}
+                options={PILLAR_STYLE_OPTIONS}
+                onChange={(st) => setPillar(i, { style: st })}
+                error={errors[`pillars.${i}.style`] ?? errors[`pillars.${i}.key`]}
                 className="flex-1"
               />
               <div className="pb-1">
@@ -334,7 +344,8 @@ function ExperienceForm({
             <LineListEditor label="Highlights" values={p.bullets} onChange={(bullets) => setPillar(i, { bullets })} addLabel="Add highlight" error={errors[`pillars.${i}.bullets`]} />
             <TagInput label="Stack" values={p.stack} onChange={(stack) => setPillar(i, { stack })} error={errors[`pillars.${i}.stack`]} />
           </div>
-        ))}
+          );
+        })}
       </section>
     </>
   );

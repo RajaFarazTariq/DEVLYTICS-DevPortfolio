@@ -1,9 +1,9 @@
 import type { Profile } from '@/data/profile';
-import type { Project, ProjectCategory } from '@/data/projects';
+import type { Project } from '@/data/projects';
 import type { SkillGroupContent } from '@/data/skills';
-import type { ExperienceItem, Pillar, PillarKey } from '@/data/experience';
+import { pillarStyles, type ExperienceItem, type Pillar, type PillarStyle } from '@/data/experience';
 import type { About, AboutPillar, MarqueeItem, PillarTone } from '@/data/about';
-import { SECTION_KEYS, type SectionSettings, type SiteSettings } from '@/data/settings';
+import { SECTION_KEYS, type SectionSettings, type SiteInfo, type SiteSettings, type TextKey } from '@/data/settings';
 import { SOCIAL_PLATFORMS } from '@/data/socials';
 import type { ContentKey } from '@/admin/config';
 
@@ -36,16 +36,55 @@ export const SECTION_LABELS: Record<keyof SiteSettings['sections'], string> = {
   contact: 'Contact',
 };
 
-export const PROJECT_CATEGORIES: ProjectCategory[] = [
-  'Web Development',
-  'Data Analytics',
-  'AI / ML',
+export const PILLAR_STYLE_OPTIONS: { value: PillarStyle; label: string }[] = (Object.keys(pillarStyles) as PillarStyle[]).map(
+  (value) => ({ value, label: value[0].toUpperCase() + value.slice(1) }),
+);
+
+export const SITE_FIELDS: { key: keyof SiteInfo; label: string; hint?: string; max: number }[] = [
+  { key: 'title', label: 'Page title', hint: 'Browser tab and search result title.', max: 70 },
+  { key: 'description', label: 'Search description', hint: 'Shown under the title in Google results. Aim for 120–160 characters.', max: 300 },
+  { key: 'brandHighlight', label: 'Brand — coloured part', hint: 'e.g. “Dev” (gradient in the hero title).', max: 30 },
+  { key: 'brandRest', label: 'Brand — rest', hint: 'e.g. “lytics”.', max: 30 },
+  { key: 'logoLetter', label: 'Logo letter', hint: 'Inside the square logo mark (1–2 characters).', max: 2 },
+  { key: 'contactFormKey', label: 'Web3Forms access key', hint: 'Contact form messages are delivered to the email registered with this key at web3forms.com.', max: 60 },
+  { key: 'contactFormFromName', label: 'Contact email sender name', hint: 'Shown as the sender of contact form emails you receive.', max: 60 },
 ];
 
-export const PILLARS: { key: PillarKey; label: string }[] = [
-  { key: 'web', label: 'Web Development' },
-  { key: 'data', label: 'Data Analytics' },
-  { key: 'ai', label: 'AI / Machine Learning' },
+/** Every interface text on the site, grouped by where it appears. {placeholders} are filled in automatically. */
+export const TEXT_FIELDS: { key: TextKey; label: string; group: string; hint?: string; max: number }[] = [
+  { key: 'navHome', label: 'Home link', group: 'Navigation', max: 30, hint: 'Other link labels are set per section on the Sections page.' },
+  { key: 'navContactButton', label: 'Navbar contact button', group: 'Navigation', max: 30 },
+  { key: 'loadingTagline', label: 'Tagline under the logo', group: 'Loading screen', max: 60 },
+  { key: 'loadingLabel', label: 'Progress label', group: 'Loading screen', max: 30 },
+  { key: 'heroProjectsButton', label: 'Projects button', group: 'Hero', max: 30 },
+  { key: 'heroContactButton', label: 'Contact button', group: 'Hero', max: 30 },
+  { key: 'heroResumeButton', label: 'Resume button', group: 'Hero', max: 30, hint: 'Only shown while a resume is active.' },
+  { key: 'heroScrollHint', label: 'Scroll hint', group: 'Hero', max: 30 },
+  { key: 'heroSceneLoading', label: '3D scene loading text', group: 'Hero', max: 60 },
+  { key: 'projectsCodeButton', label: 'Code link button', group: 'Projects carousel', max: 30 },
+  { key: 'projectsDemoButton', label: 'Live demo button', group: 'Projects carousel', max: 30 },
+  { key: 'projectsAutoRotating', label: 'Status: rotating', group: 'Projects carousel', max: 30 },
+  { key: 'projectsPaused', label: 'Status: paused', group: 'Projects carousel', max: 30 },
+  { key: 'projectsPlay', label: 'Play button', group: 'Projects carousel', max: 30 },
+  { key: 'projectsPause', label: 'Pause button', group: 'Projects carousel', max: 30 },
+  { key: 'contactEmailLabel', label: 'Email label', group: 'Contact details', max: 30 },
+  { key: 'contactLocationLabel', label: 'Location label', group: 'Contact details', max: 30 },
+  { key: 'contactPhoneLabel', label: 'Phone label', group: 'Contact details', max: 30 },
+  { key: 'formNameLabel', label: 'Name label', group: 'Contact form', max: 40 },
+  { key: 'formNamePlaceholder', label: 'Name placeholder', group: 'Contact form', max: 60 },
+  { key: 'formEmailLabel', label: 'Email label', group: 'Contact form', max: 40 },
+  { key: 'formEmailPlaceholder', label: 'Email placeholder', group: 'Contact form', max: 60 },
+  { key: 'formSubjectLabel', label: 'Subject label', group: 'Contact form', max: 40 },
+  { key: 'formSubjectPlaceholder', label: 'Subject placeholder', group: 'Contact form', max: 60 },
+  { key: 'formMessageLabel', label: 'Message label', group: 'Contact form', max: 40 },
+  { key: 'formMessagePlaceholder', label: 'Message placeholder', group: 'Contact form', max: 80 },
+  { key: 'formSubmit', label: 'Send button', group: 'Contact form', max: 30 },
+  { key: 'formSending', label: 'Sending state', group: 'Contact form', max: 30 },
+  { key: 'formSuccess', label: 'Success message', group: 'Contact form', max: 160 },
+  { key: 'formError', label: 'Error message', group: 'Contact form', max: 200, hint: '{email} is replaced with your email address.' },
+  { key: 'footerCredit', label: 'Credit line', group: 'Footer', max: 120, hint: '{name} is replaced with your name.' },
+  { key: 'footerCopyright', label: 'Copyright line', group: 'Footer', max: 120, hint: '{year} is replaced with the current year.' },
+  { key: 'footerBackToTop', label: 'Back to top button', group: 'Footer', max: 30 },
 ];
 
 // Gradient presets already used by the site (projects keep this field even
@@ -152,13 +191,17 @@ export function normalizeSkillGroup(g: SkillGroupContent): SkillGroupContent {
 }
 
 function normalizePillar(p: Pillar): Pillar {
-  return {
-    key: p.key,
+  const out: Pillar = {
+    key: str(p.key),
     name: str(p.name),
     description: str(p.description),
     bullets: strList(p.bullets),
     stack: strList(p.stack),
   };
+  // Only stored when chosen; the original web/data/ai columns fall back to their defaults.
+  optional(out, 'icon', p.icon);
+  optional(out, 'style', p.style);
+  return out;
 }
 
 export function normalizeExperience(e: ExperienceItem): ExperienceItem {
@@ -198,6 +241,7 @@ export function normalizeAbout(a: About): About {
 function normalizeSectionSettings(s: SectionSettings): SectionSettings {
   return {
     visible: s.visible !== false,
+    navLabel: str(s.navLabel),
     eyebrow: str(s.eyebrow),
     title: str(s.title),
     highlight: str(s.highlight),
@@ -208,7 +252,11 @@ function normalizeSectionSettings(s: SectionSettings): SectionSettings {
 export function normalizeSettings(s: SiteSettings): SiteSettings {
   const sections = {} as SiteSettings['sections'];
   for (const key of SECTION_KEYS) sections[key] = normalizeSectionSettings(s.sections[key]);
-  return { ...s, sections };
+  const site = {} as SiteInfo;
+  for (const { key } of SITE_FIELDS) site[key] = str(s.site?.[key]);
+  const text = {} as SiteSettings['text'];
+  for (const { key } of TEXT_FIELDS) text[key] = str(s.text?.[key]);
+  return { ...s, sections, site, text, projectCategories: strList(s.projectCategories) };
 }
 
 export function normalizeSection<K extends ContentKey>(
@@ -272,11 +320,11 @@ export function uniqueSlug(base: string, taken: Iterable<string>) {
   return `${root}-${n}`;
 }
 
-export function emptyProject(id: string): Project {
+export function emptyProject(id: string, category = ''): Project {
   return {
     id,
     title: '',
-    category: PROJECT_CATEGORIES[0],
+    category,
     summary: '',
     description: '',
     tech: [],

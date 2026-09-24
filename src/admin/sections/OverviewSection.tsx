@@ -26,7 +26,7 @@ import type { Issue } from '@/admin/lib/validate';
 import { Badge, SectionHeader } from '@/admin/components/ui';
 import { cn } from '@/utils/cn';
 
-type Target = 'profile' | 'about' | 'projects' | 'skills' | 'experience' | 'settings' | 'media' | 'resume';
+type Target = 'profile' | 'about' | 'projects' | 'skills' | 'experience' | 'settings' | 'site' | 'text' | 'media' | 'resume';
 
 const FILE_LABELS: Record<ContentKey, string> = {
   profile: 'Profile & contact',
@@ -34,7 +34,7 @@ const FILE_LABELS: Record<ContentKey, string> = {
   skills: 'Skills',
   experience: 'Experience & education',
   about: 'About section',
-  settings: 'Section settings',
+  settings: 'Site settings (sections, SEO, text, categories)',
 };
 
 function timeAgo(iso: string) {
