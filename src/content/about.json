@@ -1,0 +1,172 @@
+{
+  "heading": "Developer. Analyst. Innovator.",
+  "paragraphs": [
+    "I'm a full-stack developer and data analyst who loves building products end-to-end — from designing reliable APIs and pixel-perfect UIs to wrangling messy datasets into dashboards that actually move the needle. I work across the JavaScript and Python ecosystems and have hands-on exposure to modern AI/ML tooling.",
+    "My favourite kind of project sits at the intersection of engineering and insight: shipping software that not only works at scale, but actively learns from the data it produces."
+  ],
+  "pillars": [
+    {
+      "icon": "Code2",
+      "title": "Web Development",
+      "description": "React, TypeScript, Django and Node — full-stack apps, real-time systems, and clean REST APIs.",
+      "tone": "blue"
+    },
+    {
+      "icon": "BarChart3",
+      "title": "Data Analytics",
+      "description": "Pandas, SQL and Zoho Analytics — dashboards, ETL pipelines and automation that replace spreadsheets.",
+      "tone": "violet"
+    },
+    {
+      "icon": "BrainCircuit",
+      "title": "AI & Computer Vision",
+      "description": "OpenCV, YOLOv9, Mediapipe and LLM APIs — production-ready vision and language pipelines.",
+      "tone": "pink"
+    }
+  ],
+  "marqueeLabel": "Tools & Technologies",
+  "tools": [
+    {
+      "name": "Git",
+      "icon": "SiGit",
+      "color": "pink"
+    },
+    {
+      "name": "GitHub",
+      "icon": "SiGithub",
+      "color": "violet"
+    },
+    {
+      "name": "VS Code",
+      "icon": "Code2",
+      "color": "blue"
+    },
+    {
+      "name": "Docker",
+      "icon": "SiDocker",
+      "color": "cyan"
+    },
+    {
+      "name": "Vite",
+      "icon": "SiVite",
+      "color": "amber"
+    },
+    {
+      "name": "PostgreSQL",
+      "icon": "SiPostgresql",
+      "color": "blue"
+    },
+    {
+      "name": "MySQL",
+      "icon": "SiMysql",
+      "color": "cyan"
+    },
+    {
+      "name": "Pandas",
+      "icon": "SiPandas",
+      "color": "violet"
+    },
+    {
+      "name": "NumPy",
+      "icon": "SiNumpy",
+      "color": "sky"
+    },
+    {
+      "name": "OpenCV",
+      "icon": "SiOpencv",
+      "color": "pink"
+    },
+    {
+      "name": "Figma",
+      "icon": "SiFigma",
+      "color": "green"
+    },
+    {
+      "name": "Postman",
+      "icon": "SiPostman",
+      "color": "amber"
+    },
+    {
+      "name": "Zoho Analytics",
+      "icon": "BarChart3",
+      "color": "green"
+    }
+  ],
+  "technologies": [
+    {
+      "name": "React.js",
+      "icon": "SiReact",
+      "color": "cyan"
+    },
+    {
+      "name": "TypeScript",
+      "icon": "SiTypescript",
+      "color": "blue"
+    },
+    {
+      "name": "JavaScript",
+      "icon": "SiJavascript",
+      "color": "amber"
+    },
+    {
+      "name": "Python",
+      "icon": "SiPython",
+      "color": "sky"
+    },
+    {
+      "name": "Node.js",
+      "icon": "SiNodedotjs",
+      "color": "green"
+    },
+    {
+      "name": "Django",
+      "icon": "SiDjango",
+      "color": "violet"
+    },
+    {
+      "name": "NestJS",
+      "icon": "SiNestjs",
+      "color": "pink"
+    },
+    {
+      "name": "Tailwind CSS",
+      "icon": "SiTailwindcss",
+      "color": "sky"
+    },
+    {
+      "name": "Three.js",
+      "icon": "SiThreedotjs",
+      "color": "violet"
+    },
+    {
+      "name": "Framer Motion",
+      "icon": "SiFramer",
+      "color": "pink"
+    },
+    {
+      "name": "Socket.io",
+      "icon": "SiSocketdotio",
+      "color": "cyan"
+    },
+    {
+      "name": "HTML5",
+      "icon": "SiHtml5",
+      "color": "amber"
+    },
+    {
+      "name": "CSS3",
+      "icon": "SiCss",
+      "color": "blue"
+    },
+    {
+      "name": "YOLOv9",
+      "icon": "ScanEye",
+      "color": "amber"
+    },
+    {
+      "name": "LLM APIs",
+      "icon": "BrainCircuit",
+      "color": "violet"
+    }
+  ]
+}

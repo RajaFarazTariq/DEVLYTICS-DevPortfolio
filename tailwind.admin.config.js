@@ -7,5 +7,6 @@ import base from './tailwind.config.js';
  */
 export default {
   ...base,
-  content: ['./admin/index.html', './src/admin/**/*.{ts,tsx}'],
+  // src/data holds the colour presets the admin previews (About cards, skill icons).
+  content: ['./admin/index.html', './src/admin/**/*.{ts,tsx}', './src/data/**/*.ts'],
 };

@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
-// Icons a skill group can use. Content files reference them by name.
+// Icons a skill group or About card can use. Content files reference them by name.
 export const skillIcons = {
   Code2,
   Server,

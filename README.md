@@ -57,15 +57,36 @@ src/
     └── sections/        # Hero, About, Skills, Projects, Experience, Contact
 ```
 
-Editable content (profile, projects, skills, experience & education) lives in `src/content/*.json`
-and is loaded by the typed modules in `src/data/*`. Edit it from the admin panel (below) or by hand.
+Editable content lives in `src/content/*.json` and is loaded by the typed modules in `src/data/*`.
+Edit it from the admin panel (below) or by hand:
+
+| File | Holds |
+| --- | --- |
+| `profile.json` | Name, hero text, rotating roles, contact details, social links, stats, active resume |
+| `about.json` | About bio card, discipline cards, Tools & Technologies marquee |
+| `projects.json` | Projects carousel (`"hidden": true` = unpublished) |
+| `skills.json` | Skill groups and levels |
+| `experience.json` | Experience & education timeline |
+| `settings.json` | Section visibility and section headings |
 
 ---
 
 ## 🔐 Admin panel
 
-A separate page at **`/admin`** for adding, editing, reordering and deleting portfolio content
-and project images — no code changes needed. It never loads on the public site.
+A separate page at **`/admin`** for managing all portfolio content without code changes. It never
+loads on the public site, and it only changes content — the public design stays as it is.
+
+| Page | What you can do |
+| --- | --- |
+| Dashboard | Counts (published/hidden projects, skills, experience, education), draft status, site status, recent content commits |
+| Profile & Contact | Name, tagline, rotating roles, hero summary, email/phone/location, stats, social links (GitHub, LinkedIn, Instagram, X, YouTube, Facebook, Dribbble, Behance, Medium, website — empty = hidden) |
+| About | Bio heading and paragraphs, discipline cards (icon, colour, text), marquee chips |
+| Projects | Add, edit, duplicate, delete, drag to reorder, publish/hide, search & filter, upload or reuse images |
+| Skills | Groups with icon and colour, skills with levels, reorder |
+| Experience & Education | Add, edit, delete, reorder, start/end/current period builder, filter by type |
+| Sections | Show/hide About, Skills, Projects, Experience, Contact; edit each section's heading |
+| Media | Upload, search, delete unused images (images in use are protected) |
+| Resume / CV | Upload PDFs, set the active one, view/download, remove, delete. An active resume adds a "Download CV" button to the hero |
 
 **How it works:** there is no database. You sign in with GitHub, the admin reads
 `src/content/*.json` and `public/assets/projects/` from the `main` branch, and publishes all
@@ -98,8 +119,11 @@ pasted under *Use an access token instead*.
   http(s)-only links, existing images, skill levels 0–100, and no duplicate list entries.
 - Publishing refuses to overwrite: if the content files changed on GitHub after loading, or the
   branch moved mid-publish, nothing is written.
-- Images still used by a project can't be deleted. Uploads are checked by file signature,
-  limited to PNG/JPG/WebP/GIF/AVIF, and capped at 4 MB.
+- Images still used by a project, and the active resume, can't be deleted. Uploads are checked by
+  file signature: images are limited to PNG/JPG/WebP/GIF/AVIF (max 4 MB), resumes to PDF (max 10 MB)
+  and stored in `public/assets/resume/`.
+- The site can't be left with an empty carousel: at least one project must stay published while the
+  Projects section is shown.
 - `vercel.json` sends `noindex`, `DENY` framing and a strict CSP for `/admin`.
 
 **Local:** `npm run dev`, then open `http://localhost:5173/admin/`. In dev only, *Local preview*
@@ -117,4 +141,4 @@ Gradient brand stack: **#5e8bff → #a78bfa → #ec4899**.
 
 ## 📷 Project assets
 
-Project preview images live in `public/assets/projects/`. Update the `image` field in `src/data/projects.ts` to swap them out.
+Project preview images live in `public/assets/projects/`. Manage them from the admin panel, or change the `image` field in `src/content/projects.json`.

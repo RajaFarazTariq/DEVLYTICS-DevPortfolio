@@ -1,9 +1,10 @@
 import { useEffect, useState, type ChangeEvent } from 'react';
-import { ExternalLink, FolderKanban, Github, Images, Loader2, Pencil, Plus, Upload } from 'lucide-react';
+import { Copy, ExternalLink, Eye, EyeOff, FolderKanban, Github, GripVertical, Images, Loader2, Pencil, Plus, SearchX, Upload } from 'lucide-react';
 import type { Project } from '@/data/projects';
 import {
   PROJECT_ACCENTS,
   PROJECT_CATEGORIES,
+  duplicateProject,
   emptyProject,
   uniqueSlug,
 } from '@/admin/lib/content';
@@ -11,20 +12,24 @@ import { LIMITS, idIssues, validateProject, type Issue, type ValidationContext }
 import { ACCEPT_IMAGES, prepareUpload, slugify } from '@/admin/lib/images';
 import type { Confirm, Focus, MediaApi } from '@/admin/types';
 import { useItemEditor } from '@/admin/hooks/useItemEditor';
+import { useDragReorder } from '@/admin/hooks/useDragReorder';
 import { ImageThumb } from '@/admin/components/ImageThumb';
 import {
   Badge,
   Drawer,
   EmptyState,
+  FilterTabs,
   FormSection,
   IssueList,
   Modal,
   ReorderButtons,
+  SearchInput,
   SectionHeader,
   SelectField,
   TagInput,
   TextAreaField,
   TextField,
+  Toggle,
   moveItem,
 } from '@/admin/components/ui';
 import { cn } from '@/utils/cn';
@@ -76,13 +81,40 @@ export function ProjectsSection({
 
   const listIssues = issues.filter((i) => i.index === undefined).map((i) => i.message);
 
+  const [query, setQuery] = useState('');
+  const [status, setStatus] = useState<'all' | 'published' | 'hidden'>('all');
+  const [category, setCategory] = useState<'all' | Project['category']>('all');
+  const filtering = query.trim() !== '' || status !== 'all' || category !== 'all';
+  const q = query.trim().toLowerCase();
+  const visible = projects
+    .map((p, i) => ({ p, i }))
+    .filter(({ p }) => status === 'all' || (status === 'hidden' ? p.hidden : !p.hidden))
+    .filter(({ p }) => category === 'all' || p.category === category)
+    .filter(({ p }) => !q || [p.title, p.subtitle ?? '', p.summary, ...p.tech].some((t) => t.toLowerCase().includes(q)));
+  const hiddenCount = projects.filter((p) => p.hidden).length;
+
+  const drag = useDragReorder((a, b) => onChange(moveItem(projects, a, b)), !filtering);
+
+  const toggleHidden = (i: number) =>
+    onChange(projects.map((p, k) => (k === i ? { ...p, hidden: !p.hidden } : p)));
+
+  const duplicate = (i: number) => {
+    const copy = duplicateProject(projects[i], projects.map((p) => p.id));
+    onChange([...projects.slice(0, i + 1), copy, ...projects.slice(i + 1)]);
+  };
+
   return (
     <div>
       <SectionHeader
         eyebrow="Content"
         title="Projects"
-        description="Shown in the rotating carousel, in this order."
-        meta={<Badge>{projects.length} {projects.length === 1 ? 'project' : 'projects'}</Badge>}
+        description="Published projects are shown in the rotating carousel, in this order. Drag cards to reorder."
+        meta={
+          <Badge>
+            {projects.length} {projects.length === 1 ? 'project' : 'projects'}
+            {hiddenCount > 0 ? ` · ${hiddenCount} hidden` : ''}
+          </Badge>
+        }
         actions={
           <button type="button" className="adm-btn-primary" onClick={addProject}>
             <Plus className="h-4 w-4" /> Add project
@@ -93,6 +125,35 @@ export function ProjectsSection({
       {listIssues.length > 0 && (
         <div className="mb-5">
           <IssueList messages={listIssues} />
+        </div>
+      )}
+
+      {projects.length > 0 && (
+        <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center">
+          <SearchInput value={query} onChange={setQuery} placeholder="Search title, summary or technology" className="sm:max-w-xs sm:flex-1" />
+          <FilterTabs
+            value={status}
+            onChange={setStatus}
+            options={[
+              { value: 'all', label: 'All', count: projects.length },
+              { value: 'published', label: 'Published', count: projects.length - hiddenCount },
+              { value: 'hidden', label: 'Hidden', count: hiddenCount },
+            ]}
+          />
+          <select
+            value={category}
+            onChange={(e) => setCategory(e.target.value as typeof category)}
+            className="adm-input h-9 appearance-none py-0 sm:w-48"
+            aria-label="Filter by category"
+          >
+            <option value="all" className="bg-ink-900">All categories</option>
+            {PROJECT_CATEGORIES.map((c) => (
+              <option key={c} value={c} className="bg-ink-900">
+                {c}
+              </option>
+            ))}
+          </select>
+          {filtering && <span className="text-xs text-ink-500">Clear filters to drag-reorder.</span>}
         </div>
       )}
 
@@ -107,17 +168,32 @@ export function ProjectsSection({
             </button>
           }
         />
+      ) : visible.length === 0 ? (
+        <EmptyState icon={SearchX} title="No matching projects" description="Try another search or filter." />
       ) : (
         <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-          {projects.map((p, i) => {
+          {visible.map(({ p, i }) => {
             const count = issues.filter((x) => x.index === i).length;
             return (
-              <article key={`${p.id}-${i}`} className={cn('adm-card adm-card-interactive flex flex-col overflow-hidden', count > 0 && 'border-rose-400/25')}>
+              <article
+                key={`${p.id}-${i}`}
+                {...drag.itemProps(i)}
+                className={cn('adm-card adm-card-interactive flex flex-col overflow-hidden', count > 0 && 'border-rose-400/25', p.hidden && 'opacity-70', drag.stateClass(i))}
+              >
                 <button type="button" onClick={() => editor.open(i, p)} className="relative block text-left">
                   <ImageThumb src={media.resolve(p.image)} fallback={p.image} alt={`${p.title} preview`} background={p.imageBg} className="adm-checker aspect-[16/9] w-full border-b border-white/[0.06]" />
                   <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between p-3">
-                    <span className="rounded-full border border-white/10 bg-ink-950/75 px-2.5 py-1 text-[11px] font-medium text-ink-100 backdrop-blur">{p.category}</span>
-                    <span className="rounded-md border border-white/10 bg-ink-950/75 px-1.5 py-0.5 font-mono text-[10.5px] text-ink-300 backdrop-blur">#{i + 1}</span>
+                    <span className="flex flex-wrap gap-1.5">
+                      <span className="rounded-full border border-white/10 bg-ink-950/75 px-2.5 py-1 text-[11px] font-medium text-ink-100 backdrop-blur">{p.category}</span>
+                      {p.hidden && (
+                        <span className="inline-flex items-center gap-1 rounded-full border border-amber-400/30 bg-ink-950/80 px-2.5 py-1 text-[11px] font-medium text-amber-200 backdrop-blur">
+                          <EyeOff className="h-3 w-3" /> Hidden
+                        </span>
+                      )}
+                    </span>
+                    <span className="inline-flex items-center gap-1 rounded-md border border-white/10 bg-ink-950/75 px-1.5 py-0.5 font-mono text-[10.5px] text-ink-300 backdrop-blur">
+                      {!filtering && <GripVertical className="h-3 w-3" />}#{i + 1}
+                    </span>
                   </div>
                   {count > 0 && (
                     <span className="absolute bottom-3 left-3">
@@ -152,7 +228,19 @@ export function ProjectsSection({
                     )}
                     {!p.links.github && !p.links.demo && <span className="px-2 text-xs text-ink-500">No links</span>}
                   </div>
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-0.5">
+                    <button
+                      type="button"
+                      className="adm-icon-btn"
+                      onClick={() => toggleHidden(i)}
+                      aria-label={p.hidden ? `Publish ${p.title}` : `Hide ${p.title}`}
+                      title={p.hidden ? 'Hidden — click to publish' : 'Published — click to hide'}
+                    >
+                      {p.hidden ? <EyeOff className="h-4 w-4 text-amber-300" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                    <button type="button" className="adm-icon-btn" onClick={() => duplicate(i)} aria-label={`Duplicate ${p.title}`} title="Duplicate (copy starts hidden)">
+                      <Copy className="h-4 w-4" />
+                    </button>
                     <ReorderButtons
                       index={i}
                       length={projects.length}
@@ -289,6 +377,12 @@ function ProjectForm({
             error={errors.category}
           />
         </div>
+        <Toggle
+          checked={!value.hidden}
+          onChange={(published) => onChange({ ...value, hidden: !published })}
+          label="Published"
+          description={value.hidden ? 'Hidden — saved here but not shown on the site.' : 'Shown in the projects carousel.'}
+        />
       </FormSection>
 
       <FormSection title="Content" description="What visitors read in the carousel.">

@@ -1,17 +1,20 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
   AlertTriangle,
+  BookOpen,
   Briefcase,
   CheckCircle2,
   ChevronRight,
   Clock,
   ExternalLink,
+  FileText,
   FolderKanban,
   Github,
   Images,
   LayoutDashboard,
   Loader2,
   LogOut,
+  PanelsTopLeft,
   RefreshCw,
   Rocket,
   RotateCcw,
@@ -25,6 +28,7 @@ import {
   GitHubError,
   createGitHubClient,
   describeGitHubError,
+  type CommitSummary,
   type DeployStatus,
   type DirEntry,
   type FileChange,
@@ -46,7 +50,11 @@ import { clearDraft, saveDraft, takeDraft } from '@/admin/lib/draftStore';
 import { parseSection, serializeSection, type PortfolioContent } from '@/admin/lib/content';
 import { validateSection, type Issue, type ValidationContext } from '@/admin/lib/validate';
 import {
+  githubBlobUrl,
   isImageFileName,
+  isImageRepoPath,
+  isPdfFileName,
+  isResumeRepoPath,
   publicPathToRepoPath,
   rawImageUrl,
   repoPathToPublicPath,
@@ -58,6 +66,9 @@ import { LoginScreen } from '@/admin/components/LoginScreen';
 import { PublishDialog } from '@/admin/components/PublishDialog';
 import { OverviewSection } from '@/admin/sections/OverviewSection';
 import { ProfileSection } from '@/admin/sections/ProfileSection';
+import { AboutSection } from '@/admin/sections/AboutSection';
+import { SettingsSection } from '@/admin/sections/SettingsSection';
+import { ResumeSection } from '@/admin/sections/ResumeSection';
 import { ProjectsSection } from '@/admin/sections/ProjectsSection';
 import { SkillsSection } from '@/admin/sections/SkillsSection';
 import { ExperienceSection } from '@/admin/sections/ExperienceSection';
@@ -74,6 +85,7 @@ type Loaded = {
   baseline: Record<ContentKey, string>;
   original: PortfolioContent;
   images: DirEntry[];
+  resumes: DirEntry[];
 };
 
 type Upload = PendingUpload & { keep: boolean };
@@ -81,15 +93,18 @@ type Upload = PendingUpload & { keep: boolean };
 type Phase = 'checking' | 'signed-out' | 'verifying' | 'loading' | 'ready' | 'error';
 
 const TABS = [
-  { id: 'overview', label: 'Overview', icon: LayoutDashboard, group: 'General' },
-  { id: 'profile', label: 'Profile', icon: UserRound, group: 'Content' },
+  { id: 'overview', label: 'Dashboard', icon: LayoutDashboard, group: 'General' },
+  { id: 'profile', label: 'Profile & Contact', icon: UserRound, group: 'Content' },
+  { id: 'about', label: 'About', icon: BookOpen, group: 'Content' },
   { id: 'projects', label: 'Projects', icon: FolderKanban, group: 'Content' },
   { id: 'skills', label: 'Skills', icon: Sparkles, group: 'Content' },
   { id: 'experience', label: 'Experience & Education', icon: Briefcase, group: 'Content' },
+  { id: 'settings', label: 'Sections', icon: PanelsTopLeft, group: 'Site' },
   { id: 'media', label: 'Media', icon: Images, group: 'Assets' },
+  { id: 'resume', label: 'Resume / CV', icon: FileText, group: 'Assets' },
 ] as const;
 
-const NAV_GROUPS = ['General', 'Content', 'Assets'] as const;
+const NAV_GROUPS = ['General', 'Content', 'Site', 'Assets'] as const;
 
 type Tab = (typeof TABS)[number]['id'];
 
@@ -105,6 +120,7 @@ function buildLoaded(
   headSha: string,
   files: Record<ContentKey, LoadedFile>,
   images: DirEntry[],
+  resumes: DirEntry[],
 ): Loaded {
   const original = {} as Record<ContentKey, unknown>;
   const baseline = {} as Record<ContentKey, string>;
@@ -116,7 +132,7 @@ function buildLoaded(
       throw new Error(`${CONTENT_FILES[key]} has entries with missing fields. Fix the file in the repository before editing.`);
     }
   }
-  return { mode, headSha, files, baseline, original: original as PortfolioContent, images };
+  return { mode, headSha, files, baseline, original: original as PortfolioContent, images, resumes };
 }
 
 export function AdminApp() {
@@ -144,6 +160,7 @@ export function AdminApp() {
   const [lastPublish, setLastPublish] = useState<{ sha: string; at: Date } | null>(null);
   const [deploy, setDeploy] = useState<DeployStatus | null>(null);
   const [toast, setToast] = useState<{ tone: 'success' | 'error'; text: string } | null>(null);
+  const [history, setHistory] = useState<CommitSummary[] | null>(null);
 
   const client = useMemo(() => (auth ? createGitHubClient(auth.get) : null), [auth]);
   const loadedRef = useRef(loaded);
@@ -215,8 +232,15 @@ export function AdminApp() {
             }
           }),
         );
-        const images = await c.listDir(ADMIN_CONFIG.imageDir, headSha);
-        applyLoaded(buildLoaded('github', headSha, files, images));
+        const [images, resumes] = await Promise.all([
+          c.listDir(ADMIN_CONFIG.imageDir, headSha),
+          c.listDir(ADMIN_CONFIG.resumeDir, headSha),
+        ]);
+        applyLoaded(buildLoaded('github', headSha, files, images, resumes));
+        // "Recent updates" on the dashboard; optional, so failures are ignored.
+        c.listCommits('src/content')
+          .then(setHistory)
+          .catch(() => setHistory([]));
         if (!quiet) {
           // Edits saved before the sign-in redirect come back if GitHub hasn't moved since.
           const stored = takeDraft();
@@ -306,13 +330,15 @@ export function AdminApp() {
             projects: await import('@/content/projects.json'),
             skills: await import('@/content/skills.json'),
             experience: await import('@/content/experience.json'),
+            about: await import('@/content/about.json'),
+            settings: await import('@/content/settings.json'),
           };
           const files = {} as Record<ContentKey, LoadedFile>;
           for (const key of CONTENT_KEYS) {
             files[key] = { sha: 'local', text: JSON.stringify(mods[key].default, null, 2) + '\n' };
           }
           setExpired(false);
-          applyLoaded(buildLoaded('local', 'local', files, []));
+          applyLoaded(buildLoaded('local', 'local', files, [], []));
           setPhase('ready');
         } catch (err) {
           setLoadError(describeGitHubError(err));
@@ -341,10 +367,12 @@ export function AdminApp() {
     [loaded, serialized],
   );
 
-  const referencedImages = useMemo(
-    () => new Set((draft?.projects ?? []).map((p) => cleanPath(p.image))),
-    [draft],
-  );
+  // Managed files the draft points at: project images and the active resume.
+  const referencedImages = useMemo(() => {
+    const refs = new Set((draft?.projects ?? []).map((p) => cleanPath(p.image)));
+    if (draft?.profile.resume) refs.add(cleanPath(draft.profile.resume));
+    return refs;
+  }, [draft]);
 
   const uploadsToCommit = useMemo(
     () => Object.values(uploads).filter((u) => u.keep || referencedImages.has(u.publicPath)),
@@ -355,14 +383,14 @@ export function AdminApp() {
 
   const ctx = useMemo<ValidationContext>(
     () => ({
-      imageExists: (publicPath) => {
+      fileExists: (publicPath) => {
         const clean = cleanPath(publicPath);
-        if (!clean.startsWith(ADMIN_CONFIG.imagePublicPrefix)) return true;
+        if (!clean.startsWith(ADMIN_CONFIG.imagePublicPrefix) && !clean.startsWith(ADMIN_CONFIG.resumePublicPrefix)) return true;
         const repoPath = publicPathToRepoPath(clean);
         if (!repoPath) return false;
         if (!loaded || loaded.mode === 'local') return true;
         if (uploads[clean]) return true;
-        return loaded.images.some((e) => e.path === repoPath) && !deletions.includes(repoPath);
+        return [...loaded.images, ...loaded.resumes].some((e) => e.path === repoPath) && !deletions.includes(repoPath);
       },
     }),
     [loaded, uploads, deletions],
@@ -385,7 +413,7 @@ export function AdminApp() {
   const mediaItems = useMemo<MediaItem[]>(() => {
     const usedBy = (publicPath: string) =>
       (draft?.projects ?? []).filter((p) => cleanPath(p.image) === publicPath).map((p) => p.title || p.id);
-    const pending = uploadsToCommit.map((u) => ({
+    const pending = uploadsToCommit.filter((u) => isImageRepoPath(u.repoPath)).map((u) => ({
       publicPath: u.publicPath,
       repoPath: u.repoPath,
       name: u.repoPath.split('/').pop() ?? u.repoPath,
@@ -411,9 +439,43 @@ export function AdminApp() {
     return [...pending, ...existing];
   }, [loaded, draft, uploadsToCommit, deletions]);
 
+  const resumeItems = useMemo<MediaItem[]>(() => {
+    const active = draft?.profile.resume ? cleanPath(draft.profile.resume) : '';
+    const usedBy = (publicPath: string) => (publicPath === active ? ['Active resume'] : []);
+    const pending = uploadsToCommit.filter((u) => isResumeRepoPath(u.repoPath)).map((u) => ({
+      publicPath: u.publicPath,
+      repoPath: u.repoPath,
+      name: u.repoPath.split('/').pop() ?? u.repoPath,
+      size: u.size,
+      pending: true,
+      markedForDeletion: false,
+      usedBy: usedBy(u.publicPath),
+    }));
+    const existing = (loaded?.resumes ?? [])
+      .filter((e) => e.type === 'file' && isPdfFileName(e.name))
+      .map((e) => {
+        const publicPath = repoPathToPublicPath(e.path);
+        return {
+          publicPath,
+          repoPath: e.path,
+          name: e.name,
+          size: e.size,
+          pending: false,
+          markedForDeletion: deletions.includes(e.path),
+          usedBy: usedBy(publicPath),
+        };
+      });
+    return [...pending, ...existing];
+  }, [loaded, draft, uploadsToCommit, deletions]);
+
   const media: MediaApi = {
     items: mediaItems,
+    resumes: resumeItems,
     localMode: loaded?.mode === 'local',
+    openUrl: (item) => {
+      if (uploads[item.publicPath]) return uploads[item.publicPath].previewUrl;
+      return loaded?.mode === 'local' ? item.publicPath : githubBlobUrl(item.repoPath);
+    },
     resolve: (publicPath) => {
       const clean = cleanPath(publicPath);
       if (uploads[clean]) return uploads[clean].previewUrl;
@@ -580,10 +642,13 @@ export function AdminApp() {
       const allDeletions = [...new Set([...deletions, ...extraDeletions])];
       const stillUsed = allDeletions.filter((p) => referencedImages.has(repoPathToPublicPath(p)));
       if (stillUsed.length) {
-        throw new Error(`These images are still used by a project and can't be deleted: ${stillUsed.join(', ')}`);
+        throw new Error(`These files are still used by a project or as the active resume and can't be deleted: ${stillUsed.join(', ')}`);
       }
-      const headImages = head === loaded.headSha ? loaded.images : await client.listDir(ADMIN_CONFIG.imageDir, head);
-      const safeDeletions = allDeletions.filter((p) => headImages.some((e) => e.path === p));
+      const headFiles =
+        head === loaded.headSha
+          ? [...loaded.images, ...loaded.resumes]
+          : (await Promise.all([client.listDir(ADMIN_CONFIG.imageDir, head), client.listDir(ADMIN_CONFIG.resumeDir, head)])).flat();
+      const safeDeletions = allDeletions.filter((p) => headFiles.some((e) => e.path === p));
 
       // Guard 3: re-validate right before writing.
       if (issues.length) throw new Error('Fix the listed issues before publishing.');
@@ -619,7 +684,7 @@ export function AdminApp() {
 
   const goToIssue = (issue: Issue) => {
     setPublishOpen(false);
-    setTab(issue.section);
+    setTab(issue.section === 'profile' && issue.field === 'resume' ? 'resume' : issue.section);
     setFocus({ section: issue.section, index: issue.index, nonce: Date.now() });
   };
 
@@ -681,7 +746,19 @@ export function AdminApp() {
 
   const sectionState = (id: Tab) => {
     if (id === 'overview') return { changed: false, issues: 0 };
-    if (id === 'media') return { changed: uploadsToCommit.length > 0 || deletions.length > 0, issues: 0 };
+    if (id === 'media') {
+      return { changed: uploadsToCommit.some((u) => isImageRepoPath(u.repoPath)) || deletions.some(isImageRepoPath), issues: 0 };
+    }
+    if (id === 'resume') {
+      const changed =
+        (draft.profile.resume ?? '') !== (loaded.original.profile.resume ?? '') ||
+        uploadsToCommit.some((u) => isResumeRepoPath(u.repoPath)) ||
+        deletions.some(isResumeRepoPath);
+      return { changed, issues: issues.filter((i) => i.section === 'profile' && i.field === 'resume').length };
+    }
+    if (id === 'profile') {
+      return { changed: changedKeys.includes(id), issues: issues.filter((i) => i.section === id && i.field !== 'resume').length };
+    }
     return { changed: changedKeys.includes(id), issues: issues.filter((i) => i.section === id).length };
   };
 
@@ -845,6 +922,8 @@ export function AdminApp() {
               mode={loaded.mode}
               lastPublish={lastPublish}
               deploy={deploy}
+              history={history}
+              mediaCount={mediaItems.length}
               onNavigate={(t) => setTab(t)}
             />
           )}
@@ -852,7 +931,31 @@ export function AdminApp() {
             <ProfileSection
               profile={draft.profile}
               onChange={(v) => update('profile', v)}
-              issues={issues.filter((i) => i.section === 'profile')}
+              issues={issues.filter((i) => i.section === 'profile' && i.field !== 'resume')}
+            />
+          )}
+          {tab === 'about' && (
+            <AboutSection
+              about={draft.about}
+              onChange={(v) => update('about', v)}
+              issues={issues.filter((i) => i.section === 'about')}
+            />
+          )}
+          {tab === 'settings' && (
+            <SettingsSection
+              settings={draft.settings}
+              onChange={(v) => update('settings', v)}
+              issues={issues.filter((i) => i.section === 'settings')}
+              publishedProjects={draft.projects.filter((p) => !p.hidden).length}
+            />
+          )}
+          {tab === 'resume' && (
+            <ResumeSection
+              active={draft.profile.resume ?? ''}
+              onActiveChange={(resume) => update('profile', { ...draft.profile, resume })}
+              media={media}
+              confirm={setConfirmRequest}
+              issues={issues.filter((i) => i.section === 'profile' && i.field === 'resume')}
             />
           )}
           {tab === 'projects' && (

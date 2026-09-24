@@ -17,7 +17,12 @@ export type Project = {
     github?: string;
     demo?: string;
   };
+  /** Unpublished: kept in the content file but not shown on the site. */
+  hidden?: boolean;
 };
 
 // Content lives in src/content/projects.json and is managed from /admin.
-export const projects = projectsContent as Project[];
+export const allProjects = projectsContent as Project[];
+
+/** Published projects, in carousel order. */
+export const projects = allProjects.filter((p) => !p.hidden);

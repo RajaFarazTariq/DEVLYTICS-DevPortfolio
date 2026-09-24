@@ -1,69 +1,39 @@
 import { motion } from 'framer-motion';
-import { BarChart3, BrainCircuit, Code2 } from 'lucide-react';
 import { profile } from '@/data/profile';
+import { about, pillarTones } from '@/data/about';
+import { sections } from '@/data/settings';
+import { skillIcons } from '@/data/skillIcons';
 import { GlassCard } from '@/components/ui/GlassCard';
-import { SectionHeading } from '@/components/ui/SectionHeading';
+import { SectionHeading, headingProps } from '@/components/ui/SectionHeading';
 import { Reveal } from '@/components/ui/Reveal';
 import { AnimatedCounter } from '@/components/ui/AnimatedCounter';
 import { Marquee } from '@/components/ui/Marquee';
 
-const pillars = [
-  {
-    icon: Code2,
-    title: 'Web Development',
-    desc: 'React, TypeScript, Django and Node — full-stack apps, real-time systems, and clean REST APIs.',
-    accent: 'from-accent-500/30 to-violet-500/30',
-    iconColor: 'text-accent-300',
-  },
-  {
-    icon: BarChart3,
-    title: 'Data Analytics',
-    desc: 'Pandas, SQL and Zoho Analytics — dashboards, ETL pipelines and automation that replace spreadsheets.',
-    accent: 'from-violet-500/30 to-pink-500/30',
-    iconColor: 'text-violet-300',
-  },
-  {
-    icon: BrainCircuit,
-    title: 'AI & Computer Vision',
-    desc: 'OpenCV, YOLOv9, Mediapipe and LLM APIs — production-ready vision and language pipelines.',
-    accent: 'from-pink-500/30 to-amber-500/30',
-    iconColor: 'text-pink-300',
-  },
-];
+// Discipline cards come from src/content/about.json (managed from /admin).
+const pillars = about.pillars.map((p) => ({
+  icon: skillIcons[p.icon] ?? skillIcons.Code2,
+  title: p.title,
+  desc: p.description,
+  ...(pillarTones[p.tone] ?? pillarTones.blue),
+}));
 
 export function About() {
   return (
     <section id="about" className="relative pt-16 pb-10 md:pt-24 md:pb-12 lg:pt-32 lg:pb-14">
       <div className="container-wide">
-        <SectionHeading
-          eyebrow="01 — Introduction"
-          title={
-            <>
-              About <span className="text-gradient">Me</span>
-            </>
-          }
-          subtitle="A full-stack engineer who treats data as a first-class citizen — and ships software that learns from it."
-        />
+        <SectionHeading {...headingProps(sections.about)} />
 
         <div className="mt-14 grid gap-6 lg:grid-cols-5">
           <Reveal className="lg:col-span-3">
             <GlassCard className="h-full">
               <h3 className="font-display text-xl font-semibold md:text-2xl">
-                Developer. Analyst. Innovator.
+                {about.heading}
               </h3>
-              <p className="mt-4 leading-relaxed text-soft">
-                I'm a full-stack developer and data analyst who loves building
-                products end-to-end — from designing reliable APIs and
-                pixel-perfect UIs to wrangling messy datasets into dashboards
-                that actually move the needle. I work across the JavaScript and
-                Python ecosystems and have hands-on exposure to modern AI/ML
-                tooling.
-              </p>
-              <p className="mt-4 leading-relaxed text-soft">
-                My favourite kind of project sits at the intersection of
-                engineering and insight: shipping software that not only works
-                at scale, but actively learns from the data it produces.
-              </p>
+              {about.paragraphs.map((text, i) => (
+                <p key={i} className="mt-4 leading-relaxed text-soft">
+                  {text}
+                </p>
+              ))}
 
               <div className="mt-8 grid grid-cols-3 gap-3">
                 {profile.stats.map((s, i) => (
@@ -113,7 +83,7 @@ export function About() {
         {/* Tech marquee */}
         <Reveal className="mt-14">
           <p className="text-center font-mono text-[10px] uppercase tracking-[0.3em] text-muted">
-            Tools & Technologies
+            {about.marqueeLabel}
           </p>
           <div className="mt-6">
             <Marquee />

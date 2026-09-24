@@ -8,7 +8,7 @@ import {
   type InputHTMLAttributes,
   type TextareaHTMLAttributes,
 } from 'react';
-import { AlertCircle, AlertTriangle, ArrowDown, ArrowUp, Plus, Trash2, X } from 'lucide-react';
+import { AlertCircle, AlertTriangle, ArrowDown, ArrowUp, Plus, Search, Trash2, X } from 'lucide-react';
 import { cn } from '@/utils/cn';
 
 type IconComponent = ComponentType<{ className?: string }>;
@@ -241,6 +241,8 @@ export function LineListEditor({
   addLabel = 'Add line',
   error,
   placeholder,
+  rows = 2,
+  hint,
 }: {
   label: string;
   values: string[];
@@ -248,6 +250,8 @@ export function LineListEditor({
   addLabel?: string;
   error?: string;
   placeholder?: string;
+  rows?: number;
+  hint?: string;
 }) {
   const update = (i: number, v: string) => onChange(values.map((x, k) => (k === i ? v : x)));
   return (
@@ -262,7 +266,7 @@ export function LineListEditor({
             <div key={i} className="flex items-start gap-2">
               <span className="mt-3 w-5 shrink-0 text-right font-mono text-[10.5px] text-ink-500">{String(i + 1).padStart(2, '0')}</span>
               <textarea
-                rows={2}
+                rows={rows}
                 value={v}
                 placeholder={placeholder}
                 onChange={(e) => update(i, e.target.value)}
@@ -282,15 +286,118 @@ export function LineListEditor({
           ))}
         </div>
       )}
-      {error && (
+      {error ? (
         <p className="adm-error">
           <AlertCircle className="mt-px h-3.5 w-3.5 shrink-0" />
           {error}
         </p>
-      )}
+      ) : hint ? (
+        <p className="adm-hint">{hint}</p>
+      ) : null}
       <button type="button" className="adm-btn-secondary adm-btn-sm mt-2.5 border-dashed" onClick={() => onChange([...values, ''])}>
         <Plus className="h-3.5 w-3.5" /> {addLabel}
       </button>
+    </div>
+  );
+}
+
+/** On/off switch with a label and optional description. */
+export function Toggle({
+  checked,
+  onChange,
+  label,
+  description,
+  className,
+}: {
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+  label: string;
+  description?: string;
+  className?: string;
+}) {
+  const id = useId();
+  return (
+    <div className={cn('flex items-start justify-between gap-4', className)}>
+      <label htmlFor={id} className="min-w-0 cursor-pointer">
+        <span className="block text-sm font-medium text-ink-100">{label}</span>
+        {description && <span className="mt-0.5 block text-xs leading-relaxed text-ink-400">{description}</span>}
+      </label>
+      <button
+        id={id}
+        type="button"
+        role="switch"
+        aria-checked={checked}
+        onClick={() => onChange(!checked)}
+        className={cn(
+          'relative mt-0.5 inline-flex h-6 w-11 shrink-0 items-center rounded-full border transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-accent-400/30',
+          checked ? 'border-accent-400/50 bg-gradient-to-r from-accent-500 to-violet-600' : 'border-white/[0.12] bg-white/[0.06]',
+        )}
+      >
+        <span className={cn('inline-block h-4 w-4 rounded-full bg-white shadow transition', checked ? 'translate-x-6' : 'translate-x-1')} />
+      </button>
+    </div>
+  );
+}
+
+export function SearchInput({
+  value,
+  onChange,
+  placeholder = 'Search…',
+  className,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  className?: string;
+}) {
+  return (
+    <div className={cn('relative', className)}>
+      <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-500" />
+      <input
+        type="search"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        aria-label={placeholder}
+        className="adm-input h-9 py-0 pl-9"
+      />
+      {value && (
+        <button type="button" onClick={() => onChange('')} className="absolute right-2 top-1/2 grid h-6 w-6 -translate-y-1/2 place-items-center rounded text-ink-400 hover:text-ink-100" aria-label="Clear search">
+          <X className="h-3.5 w-3.5" />
+        </button>
+      )}
+    </div>
+  );
+}
+
+/** Segmented filter, e.g. All / Published / Hidden. */
+export function FilterTabs<T extends string>({
+  value,
+  options,
+  onChange,
+}: {
+  value: T;
+  options: { value: T; label: string; count?: number }[];
+  onChange: (value: T) => void;
+}) {
+  return (
+    <div className="inline-flex shrink-0 rounded-lg border border-white/[0.08] bg-white/[0.02] p-0.5" role="tablist">
+      {options.map((o) => (
+        <button
+          key={o.value}
+          type="button"
+          role="tab"
+          aria-selected={value === o.value}
+          onClick={() => onChange(o.value)}
+          className={cn(
+            'inline-flex h-8 items-center gap-1.5 rounded-md px-3 text-xs font-medium transition',
+            value === o.value ? 'bg-white/[0.09] text-ink-50' : 'text-ink-400 hover:text-ink-100',
+          )}
+        >
+          {o.label}
+          {o.count !== undefined && <span className="font-mono text-[10.5px] text-ink-500">{o.count}</span>}
+        </button>
+      ))}
     </div>
   );
 }
@@ -362,6 +469,41 @@ export function SectionHeader({
       </div>
       {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
     </div>
+  );
+}
+
+/** Card with an icon header, used for page-level groups of fields. */
+export function Panel({
+  icon: Icon,
+  title,
+  description,
+  aside,
+  flush,
+  children,
+}: {
+  icon: ComponentType<{ className?: string }>;
+  title: string;
+  description: string;
+  aside?: ReactNode;
+  flush?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <section className="adm-section">
+      <div className="adm-section-head">
+        <div className="flex items-start gap-3">
+          <span className="adm-icon-chip">
+            <Icon className="h-4 w-4" />
+          </span>
+          <div>
+            <h2 className="adm-section-title">{title}</h2>
+            <p className="adm-section-desc">{description}</p>
+          </div>
+        </div>
+        {aside}
+      </div>
+      {flush ? children : <div className="adm-section-body">{children}</div>}
+    </section>
   );
 }
 

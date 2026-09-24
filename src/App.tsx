@@ -12,6 +12,7 @@ import { Projects } from '@/components/sections/Projects';
 import { Experience } from '@/components/sections/Experience';
 import { Contact } from '@/components/sections/Contact';
 import { BackToTop } from '@/components/ui/BackToTop';
+import { isSectionVisible } from '@/data/settings';
 
 const MIN_SPLASH_MS = 3000;
 
@@ -72,11 +73,11 @@ export default function App() {
 
         <main className="relative">
           <Hero />
-          <About />
-          <Skills />
-          <Projects />
-          <Experience />
-          <Contact />
+          {isSectionVisible('about') && <About />}
+          {isSectionVisible('skills') && <Skills />}
+          {isSectionVisible('projects') && <Projects />}
+          {isSectionVisible('experience') && <Experience />}
+          {isSectionVisible('contact') && <Contact />}
         </main>
 
         <Footer />

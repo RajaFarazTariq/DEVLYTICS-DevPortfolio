@@ -1,5 +1,8 @@
-import { ArrowUp, Github, Instagram, Linkedin, Mail } from 'lucide-react';
+import { ArrowUp } from 'lucide-react';
 import { profile } from '@/data/profile';
+import { socialLinks } from '@/data/socials';
+
+const socials = socialLinks({ emailFirst: true });
 
 export function Footer() {
   return (
@@ -22,40 +25,17 @@ export function Footer() {
           </div>
 
           <div className="flex items-center gap-3">
-            <a
-              href={profile.socials.email}
-              aria-label="Email"
-              className="grid h-10 w-10 place-items-center rounded-full border border-[rgb(var(--border))] transition hover:border-accent-400/60 hover:text-accent-300"
-            >
-              <Mail className="h-4 w-4" />
-            </a>
-            <a
-              href={profile.socials.github}
-              target="_blank"
-              rel="noreferrer"
-              aria-label="GitHub"
-              className="grid h-10 w-10 place-items-center rounded-full border border-[rgb(var(--border))] transition hover:border-accent-400/60 hover:text-accent-300"
-            >
-              <Github className="h-4 w-4" />
-            </a>
-            <a
-              href={profile.socials.linkedin}
-              target="_blank"
-              rel="noreferrer"
-              aria-label="LinkedIn"
-              className="grid h-10 w-10 place-items-center rounded-full border border-[rgb(var(--border))] transition hover:border-accent-400/60 hover:text-accent-300"
-            >
-              <Linkedin className="h-4 w-4" />
-            </a>
-            <a
-              href={profile.socials.instagram}
-              target="_blank"
-              rel="noreferrer"
-              aria-label="Instagram"
-              className="grid h-10 w-10 place-items-center rounded-full border border-[rgb(var(--border))] transition hover:border-accent-400/60 hover:text-accent-300"
-            >
-              <Instagram className="h-4 w-4" />
-            </a>
+            {socials.map((social) => (
+              <a
+                key={social.key}
+                href={social.href}
+                {...(social.external ? { target: '_blank', rel: 'noreferrer' } : {})}
+                aria-label={social.label}
+                className="grid h-10 w-10 place-items-center rounded-full border border-[rgb(var(--border))] transition hover:border-accent-400/60 hover:text-accent-300"
+              >
+                <social.icon className="h-4 w-4" />
+              </a>
+            ))}
           </div>
         </div>
 

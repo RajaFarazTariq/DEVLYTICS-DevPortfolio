@@ -1,17 +1,11 @@
 import { motion } from 'framer-motion';
-import {
-  Github,
-  Instagram,
-  Linkedin,
-  Mail,
-  MapPin,
-  Phone,
-  Send,
-} from 'lucide-react';
+import { Mail, MapPin, Phone, Send } from 'lucide-react';
 import { useState } from 'react';
 import { profile } from '@/data/profile';
+import { socialLinks } from '@/data/socials';
 import { GlassCard } from '@/components/ui/GlassCard';
-import { SectionHeading } from '@/components/ui/SectionHeading';
+import { SectionHeading, headingProps } from '@/components/ui/SectionHeading';
+import { sections } from '@/data/settings';
 import { Reveal } from '@/components/ui/Reveal';
 
 type Status = 'idle' | 'sending' | 'sent' | 'error';
@@ -28,7 +22,7 @@ const infoItems: InfoItem[] = [
     icon: Mail,
     label: 'Email',
     value: profile.email,
-    href: profile.socials.email,
+    href: profile.socials.email || `mailto:${profile.email}`,
   },
   {
     icon: MapPin,
@@ -41,7 +35,9 @@ const infoItems: InfoItem[] = [
     value: profile.phone,
     href: `tel:${profile.phone.replace(/\s/g, '')}`,
   },
-];
+].filter((item) => item.value.trim());
+
+const socials = socialLinks({ emailFirst: false });
 
 export function Contact() {
   const [status, setStatus] = useState<Status>('idle');
@@ -73,15 +69,7 @@ export function Contact() {
   return (
     <section id="contact" className="relative py-16 md:py-24 lg:py-32">
       <div className="container-wide">
-        <SectionHeading
-          eyebrow="05 — Get In Touch"
-          title={
-            <>
-              Let's <span className="text-gradient">connect</span>
-            </>
-          }
-          subtitle="Have a project in mind, a role to discuss, or just want to say hi? My inbox is open."
-        />
+        <SectionHeading {...headingProps(sections.contact)} />
 
         <div className="mt-14 grid gap-6 lg:grid-cols-5">
           <Reveal className="lg:col-span-2">
@@ -121,40 +109,17 @@ export function Contact() {
               <div className="divider-line" />
 
               <div className="flex items-center gap-3">
-                <a
-                  href={profile.socials.github}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="grid h-10 w-10 place-items-center rounded-full border border-[rgb(var(--border))] transition hover:border-accent-400/60 hover:text-accent-300"
-                  aria-label="GitHub"
-                >
-                  <Github className="h-4 w-4" />
-                </a>
-                <a
-                  href={profile.socials.linkedin}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="grid h-10 w-10 place-items-center rounded-full border border-[rgb(var(--border))] transition hover:border-accent-400/60 hover:text-accent-300"
-                  aria-label="LinkedIn"
-                >
-                  <Linkedin className="h-4 w-4" />
-                </a>
-                <a
-                  href={profile.socials.instagram}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="grid h-10 w-10 place-items-center rounded-full border border-[rgb(var(--border))] transition hover:border-accent-400/60 hover:text-accent-300"
-                  aria-label="Instagram"
-                >
-                  <Instagram className="h-4 w-4" />
-                </a>
-                <a
-                  href={profile.socials.email}
-                  className="grid h-10 w-10 place-items-center rounded-full border border-[rgb(var(--border))] transition hover:border-accent-400/60 hover:text-accent-300"
-                  aria-label="Email"
-                >
-                  <Mail className="h-4 w-4" />
-                </a>
+                {socials.map((social) => (
+                  <a
+                    key={social.key}
+                    href={social.href}
+                    {...(social.external ? { target: '_blank', rel: 'noreferrer' } : {})}
+                    className="grid h-10 w-10 place-items-center rounded-full border border-[rgb(var(--border))] transition hover:border-accent-400/60 hover:text-accent-300"
+                    aria-label={social.label}
+                  >
+                    <social.icon className="h-4 w-4" />
+                  </a>
+                ))}
               </div>
             </GlassCard>
           </Reveal>

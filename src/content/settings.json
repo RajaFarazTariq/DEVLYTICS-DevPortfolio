@@ -1,0 +1,39 @@
+{
+  "sections": {
+    "about": {
+      "visible": true,
+      "eyebrow": "01 — Introduction",
+      "title": "About",
+      "highlight": "Me",
+      "subtitle": "A full-stack engineer who treats data as a first-class citizen — and ships software that learns from it."
+    },
+    "skills": {
+      "visible": true,
+      "eyebrow": "02 — Capabilities",
+      "title": "Skills",
+      "highlight": "Stack",
+      "subtitle": "What I work with day to day — from interface down to data pipeline."
+    },
+    "projects": {
+      "visible": true,
+      "eyebrow": "03 — Featured Work",
+      "title": "Selected",
+      "highlight": "Projects",
+      "subtitle": "A rotating spotlight on recent work. Click to pause — auto-resumes never."
+    },
+    "experience": {
+      "visible": true,
+      "eyebrow": "04 — Journey",
+      "title": "Experience &",
+      "highlight": "Education",
+      "subtitle": "Three disciplines, one engineer. Web, data and AI — shipped end-to-end."
+    },
+    "contact": {
+      "visible": true,
+      "eyebrow": "05 — Get In Touch",
+      "title": "Let's",
+      "highlight": "connect",
+      "subtitle": "Have a project in mind, a role to discuss, or just want to say hi? My inbox is open."
+    }
+  }
+}
