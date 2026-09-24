@@ -9,6 +9,7 @@ import {
   ExternalLink,
   FileText,
   FolderKanban,
+  Globe,
   Github,
   Images,
   LayoutDashboard,
@@ -19,6 +20,7 @@ import {
   Rocket,
   RotateCcw,
   Sparkles,
+  Type,
   UserRound,
   XCircle,
 } from 'lucide-react';
@@ -69,6 +71,8 @@ import { ProfileSection } from '@/admin/sections/ProfileSection';
 import { AboutSection } from '@/admin/sections/AboutSection';
 import { SettingsSection } from '@/admin/sections/SettingsSection';
 import { ResumeSection } from '@/admin/sections/ResumeSection';
+import { SiteSection } from '@/admin/sections/SiteSection';
+import { TextSection } from '@/admin/sections/TextSection';
 import { ProjectsSection } from '@/admin/sections/ProjectsSection';
 import { SkillsSection } from '@/admin/sections/SkillsSection';
 import { ExperienceSection } from '@/admin/sections/ExperienceSection';
@@ -90,6 +94,14 @@ type Loaded = {
 
 type Upload = PendingUpload & { keep: boolean };
 
+/** settings.json feeds several admin pages; its issues are routed by field. */
+function settingsPage(field: string): 'settings' | 'site' | 'text' | 'projects' {
+  if (field.startsWith('site.')) return 'site';
+  if (field.startsWith('text.')) return 'text';
+  if (field.startsWith('projectCategories')) return 'projects';
+  return 'settings';
+}
+
 type Phase = 'checking' | 'signed-out' | 'verifying' | 'loading' | 'ready' | 'error';
 
 const TABS = [
@@ -100,6 +112,8 @@ const TABS = [
   { id: 'skills', label: 'Skills', icon: Sparkles, group: 'Content' },
   { id: 'experience', label: 'Experience & Education', icon: Briefcase, group: 'Content' },
   { id: 'settings', label: 'Sections', icon: PanelsTopLeft, group: 'Site' },
+  { id: 'site', label: 'Site & SEO', icon: Globe, group: 'Site' },
+  { id: 'text', label: 'Site text', icon: Type, group: 'Site' },
   { id: 'media', label: 'Media', icon: Images, group: 'Assets' },
   { id: 'resume', label: 'Resume / CV', icon: FileText, group: 'Assets' },
 ] as const;
@@ -684,7 +698,13 @@ export function AdminApp() {
 
   const goToIssue = (issue: Issue) => {
     setPublishOpen(false);
-    setTab(issue.section === 'profile' && issue.field === 'resume' ? 'resume' : issue.section);
+    setTab(
+      issue.section === 'profile' && issue.field === 'resume'
+        ? 'resume'
+        : issue.section === 'settings'
+          ? settingsPage(issue.field)
+          : issue.section,
+    );
     setFocus({ section: issue.section, index: issue.index, nonce: Date.now() });
   };
 
@@ -758,6 +778,20 @@ export function AdminApp() {
     }
     if (id === 'profile') {
       return { changed: changedKeys.includes(id), issues: issues.filter((i) => i.section === id && i.field !== 'resume').length };
+    }
+    if (id === 'settings' || id === 'site' || id === 'text') {
+      const part = id === 'settings' ? 'sections' : id;
+      return {
+        changed: JSON.stringify(draft.settings[part]) !== JSON.stringify(loaded.original.settings[part]),
+        issues: issues.filter((i) => i.section === 'settings' && settingsPage(i.field) === id).length,
+      };
+    }
+    if (id === 'projects') {
+      const categoriesChanged = JSON.stringify(draft.settings.projectCategories) !== JSON.stringify(loaded.original.settings.projectCategories);
+      return {
+        changed: changedKeys.includes(id) || categoriesChanged,
+        issues: issues.filter((i) => i.section === id || (i.section === 'settings' && settingsPage(i.field) === 'projects')).length,
+      };
     }
     return { changed: changedKeys.includes(id), issues: issues.filter((i) => i.section === id).length };
   };
@@ -945,8 +979,22 @@ export function AdminApp() {
             <SettingsSection
               settings={draft.settings}
               onChange={(v) => update('settings', v)}
-              issues={issues.filter((i) => i.section === 'settings')}
+              issues={issues.filter((i) => i.section === 'settings' && settingsPage(i.field) === 'settings')}
               publishedProjects={draft.projects.filter((p) => !p.hidden).length}
+            />
+          )}
+          {tab === 'site' && (
+            <SiteSection
+              settings={draft.settings}
+              onChange={(v) => update('settings', v)}
+              issues={issues.filter((i) => i.section === 'settings' && settingsPage(i.field) === 'site')}
+            />
+          )}
+          {tab === 'text' && (
+            <TextSection
+              settings={draft.settings}
+              onChange={(v) => update('settings', v)}
+              issues={issues.filter((i) => i.section === 'settings' && settingsPage(i.field) === 'text')}
             />
           )}
           {tab === 'resume' && (
@@ -962,8 +1010,13 @@ export function AdminApp() {
             <ProjectsSection
               projects={draft.projects}
               onChange={(v) => update('projects', v)}
-              issues={issues.filter((i) => i.section === 'projects')}
+              issues={issues.filter((i) => i.section === 'projects' || (i.section === 'settings' && settingsPage(i.field) === 'projects'))}
               ctx={ctx}
+              categories={draft.settings.projectCategories}
+              onCategoriesChange={(projectCategories, projects) => {
+                update('settings', { ...draft.settings, projectCategories });
+                update('projects', projects);
+              }}
               media={media}
               confirm={setConfirmRequest}
               focus={focusFor('projects')}

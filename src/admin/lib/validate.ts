@@ -9,7 +9,8 @@ import { SECTION_KEYS, type SiteSettings } from '@/data/settings';
 import { SOCIAL_PLATFORMS } from '@/data/socials';
 import { skillIcons } from '@/data/skillIcons';
 import { techColors, techIcons } from '@/data/techIcons';
-import { PILLARS, PROJECT_CATEGORIES, SECTION_LABELS, type PortfolioContent } from '@/admin/lib/content';
+import { SECTION_LABELS, SITE_FIELDS, TEXT_FIELDS, type PortfolioContent } from '@/admin/lib/content';
+import { pillarStyles } from '@/data/experience';
 
 // Guards that run before anything is committed. They mirror what the public
 // components need to render safely (unique React keys, non-empty lists the
@@ -164,13 +165,15 @@ export function validateProfile(p: Profile, ctx: ValidationContext): Issue[] {
   return c.issues;
 }
 
-export function validateProject(p: Project, index: number, ctx: ValidationContext): Issue[] {
+export function validateProject(p: Project, index: number, ctx: ValidationContext, categories: string[]): Issue[] {
   const c = new Collector('projects', `Projects › ${p.title.trim() || `#${index + 1}`}`, index);
   c.required('title', p.title, 'Title');
   c.optional('subtitle', p.subtitle, 'Subtitle');
   c.required('summary', p.summary, 'Summary', LIMITS.summary);
   c.required('description', p.description, 'Description', LIMITS.long);
-  if (!PROJECT_CATEGORIES.includes(p.category)) c.add('category', 'Choose a category.');
+  if (!categories.includes(p.category)) {
+    c.add('category', p.category ? `Category "${p.category}" no longer exists — choose another.` : 'Choose a category.');
+  }
   c.tags('tech', p.tech, 'Technologies', { min: 1 });
 
   const image = p.image.trim();
@@ -223,8 +226,10 @@ export function validateExperience(e: ExperienceItem, index: number): Issue[] {
 
   const keys = new Set<string>();
   (e.pillars ?? []).forEach((p, i) => {
-    if (!PILLARS.some((x) => x.key === p.key)) c.add(`pillars.${i}.key`, 'Choose a discipline.');
-    if (keys.has(p.key)) c.add(`pillars.${i}.key`, `Discipline "${p.key}" is used twice.`);
+    if (!SLUG.test(p.key)) c.add(`pillars.${i}.key`, `Column ${i + 1} needs an ID of lowercase letters, numbers and dashes.`);
+    if (keys.has(p.key)) c.add(`pillars.${i}.key`, `Column ID "${p.key}" is used twice.`);
+    if (p.icon !== undefined && !(p.icon in skillIcons)) c.add(`pillars.${i}.icon`, `Choose an icon for column ${i + 1}.`);
+    if (p.style !== undefined && !(p.style in pillarStyles)) c.add(`pillars.${i}.style`, `Choose a colour for column ${i + 1}.`);
     keys.add(p.key);
     c.required(`pillars.${i}.name`, p.name, `Discipline ${i + 1} title`, 60);
     c.required(`pillars.${i}.description`, p.description, `Discipline ${i + 1} description`, LIMITS.summary);
@@ -279,8 +284,33 @@ export function validateSettings(s: SiteSettings): Issue[] {
     c.optional(`${key}.highlight`, sec.highlight, `${label} highlighted word`, 60);
     c.optional(`${key}.subtitle`, sec.subtitle, `${label} subtitle`, LIMITS.summary);
     if (!sec.title.trim() && !sec.highlight.trim()) c.add(`${key}.title`, `${label} needs a heading.`);
+    c.required(`${key}.navLabel`, sec.navLabel, `${label} menu label`, 30);
   }
-  return c.issues;
+
+  const site = new Collector('settings', 'Site & SEO');
+  for (const f of SITE_FIELDS) {
+    if (f.key === 'brandHighlight' || f.key === 'brandRest') site.optional(`site.${f.key}`, s.site[f.key], f.label, f.max);
+    else site.required(`site.${f.key}`, s.site[f.key], f.label, f.max);
+  }
+  if (!s.site.brandHighlight.trim() && !s.site.brandRest.trim()) site.add('site.brandHighlight', 'Enter a brand name.');
+  if (s.site.contactFormKey.trim() && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s.site.contactFormKey.trim())) {
+    site.add('site.contactFormKey', 'The Web3Forms access key looks like 8f246b3b-eed4-4e6c-924f-799660d38022.');
+  }
+
+  const text = new Collector('settings', 'Site text');
+  for (const f of TEXT_FIELDS) text.required(`text.${f.key}`, s.text[f.key], `${f.group} › ${f.label}`, f.max);
+
+  const cats = new Collector('settings', 'Project categories');
+  if (!s.projectCategories.some((x) => x.trim())) cats.add('projectCategories', 'Keep at least one project category.');
+  const seen = new Set<string>();
+  s.projectCategories.forEach((cat, i) => {
+    const v = cat.trim();
+    if (!v) cats.add(`projectCategories.${i}`, `Category ${i + 1} needs a name.`);
+    else if (v.length > 40) cats.add(`projectCategories.${i}`, `Category "${v.slice(0, 20)}…" is too long (max 40).`);
+    if (v && seen.has(v)) cats.add(`projectCategories.${i}`, `Category "${v}" is listed twice.`);
+    seen.add(v);
+  });
+  return [...c.issues, ...site.issues, ...text.issues, ...cats.issues];
 }
 
 export function validateSection(
@@ -302,7 +332,7 @@ export function validateSection(
       } else if (content.settings.sections.projects.visible && !content.projects.some((p) => !p.hidden)) {
         issues.push({ section: 'projects', field: '', where: 'Projects', message: 'Publish at least one project, or hide the Projects section on the Sections page.' });
       }
-      content.projects.forEach((p, i) => issues.push(...validateProject(p, i, ctx)));
+      content.projects.forEach((p, i) => issues.push(...validateProject(p, i, ctx, content.settings.projectCategories)));
       return issues;
     }
     case 'skills': {

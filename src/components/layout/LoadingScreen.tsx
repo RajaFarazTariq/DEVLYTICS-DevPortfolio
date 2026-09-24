@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { animate, motion, useMotionValue, useTransform } from 'framer-motion';
 import { LoadingScene } from '@/components/three/LoadingScene';
+import { site, text } from '@/data/settings';
 
 export function LoadingScreen() {
   const progress = useMotionValue(0);
@@ -60,17 +61,17 @@ export function LoadingScreen() {
       >
         <div className="flex items-center gap-3">
           <span className="relative grid h-9 w-9 place-items-center rounded-xl border-2 border-cyan-400/80 font-mono text-sm font-bold text-white shadow-[0_0_22px_-2px_rgba(34,211,238,0.45)]">
-            D
+            {site.logoLetter}
             <span className="pointer-events-none absolute inset-0 -z-10 rounded-xl bg-cyan-400/15 blur-md" />
           </span>
           <span className="font-mono text-base font-semibold tracking-tight md:text-lg">
             <span className="text-cyan-400">&lt;</span>
-            <span className="text-white">Devlytics</span>
+            <span className="text-white">{site.brandHighlight}{site.brandRest}</span>
             <span className="text-cyan-400">/&gt;</span>
           </span>
         </div>
         <p className="font-mono text-[10px] uppercase tracking-[0.32em] text-cyan-300/70 md:text-[11px]">
-          Initializing systems
+          {text.loadingTagline}
         </p>
       </motion.div>
 
@@ -88,7 +89,7 @@ export function LoadingScreen() {
           />
         </div>
         <div className="mt-3 flex items-center justify-between font-mono text-[10px] uppercase tracking-[0.28em] text-cyan-300/60">
-          <span>Loading</span>
+          <span>{text.loadingLabel}</span>
           <span>{display.toString().padStart(3, '0')}%</span>
         </div>
       </motion.div>

@@ -1,14 +1,13 @@
-import { isSectionVisible } from '@/data/settings';
+import { isSectionVisible, sections, text, type SectionKey } from '@/data/settings';
 
 export type NavLink = { id: string; label: string };
 
+const SECTION_ORDER: SectionKey[] = ['about', 'skills', 'projects', 'experience', 'contact'];
+
+// Labels are managed from /admin (Site text + Sections).
 const allNavLinks: NavLink[] = [
-  { id: 'home', label: 'Home' },
-  { id: 'about', label: 'About' },
-  { id: 'skills', label: 'Skills' },
-  { id: 'projects', label: 'Projects' },
-  { id: 'experience', label: 'Experience' },
-  { id: 'contact', label: 'Contact' },
+  { id: 'home', label: text.navHome },
+  ...SECTION_ORDER.map((id) => ({ id, label: sections[id].navLabel })),
 ];
 
 // Sections switched off in /admin are left out of the navigation.

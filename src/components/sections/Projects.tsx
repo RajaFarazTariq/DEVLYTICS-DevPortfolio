@@ -10,7 +10,7 @@ import {
 import { useCallback, useEffect, useState } from 'react';
 import { projects } from '@/data/projects';
 import { SectionHeading, headingProps } from '@/components/ui/SectionHeading';
-import { sections } from '@/data/settings';
+import { sections, text } from '@/data/settings';
 import { cn } from '@/utils/cn';
 
 const ROTATE_INTERVAL_MS = 5500;
@@ -124,11 +124,11 @@ export function Projects() {
                       <span className="flex items-center gap-1.5 rounded-full bg-black/45 px-3 py-1 text-[11px] backdrop-blur">
                         {paused ? (
                           <>
-                            <Pause className="h-3 w-3" /> Paused
+                            <Pause className="h-3 w-3" /> {text.projectsPaused}
                           </>
                         ) : (
                           <>
-                            <Play className="h-3 w-3" /> Auto-rotating
+                            <Play className="h-3 w-3" /> {text.projectsAutoRotating}
                           </>
                         )}
                       </span>
@@ -172,7 +172,7 @@ export function Projects() {
                           onClick={(e) => e.stopPropagation()}
                           className="btn-ghost"
                         >
-                          <Github className="h-4 w-4" /> Code
+                          <Github className="h-4 w-4" /> {text.projectsCodeButton}
                         </a>
                       )}
                       {project.links.demo && (
@@ -183,7 +183,7 @@ export function Projects() {
                           onClick={(e) => e.stopPropagation()}
                           className="btn-primary"
                         >
-                          Live Demo <ExternalLink className="h-3.5 w-3.5" />
+                          {text.projectsDemoButton} <ExternalLink className="h-3.5 w-3.5" />
                         </a>
                       )}
                     </div>
@@ -240,11 +240,11 @@ export function Projects() {
               >
                 {paused ? (
                   <>
-                    <Play className="h-3 w-3" /> Play
+                    <Play className="h-3 w-3" /> {text.projectsPlay}
                   </>
                 ) : (
                   <>
-                    <Pause className="h-3 w-3" /> Pause
+                    <Pause className="h-3 w-3" /> {text.projectsPause}
                   </>
                 )}
               </button>

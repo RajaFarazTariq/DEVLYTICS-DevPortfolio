@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowRight, Download } from 'lucide-react';
 import { profile } from '@/data/profile';
-import { isSectionVisible } from '@/data/settings';
+import { isSectionVisible, site, text } from '@/data/settings';
 import { socialLinks } from '@/data/socials';
 import { fadeUp, staggerContainer } from '@/utils/motion';
 
@@ -81,8 +81,8 @@ export function Hero() {
             variants={fadeUp}
             className="mt-7 font-display text-5xl font-extrabold leading-[0.95] tracking-tight sm:text-6xl md:text-7xl lg:text-8xl"
           >
-            <span className="text-gradient-cyan">Dev</span>
-            <span className="text-[rgb(var(--fg))]">lytics</span>
+            <span className="text-gradient-cyan">{site.brandHighlight}</span>
+            <span className="text-[rgb(var(--fg))]">{site.brandRest}</span>
           </motion.h1>
 
           <motion.div
@@ -106,19 +106,19 @@ export function Hero() {
           <motion.div variants={fadeUp} className="mt-9 flex flex-wrap gap-3">
             {isSectionVisible('projects') && (
               <a href="#projects" className="btn-cyan group">
-                View Projects
+                {text.heroProjectsButton}
                 <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
               </a>
             )}
             {isSectionVisible('contact') && (
               <a href="#contact" className="btn-ghost">
-                Contact Me
+                {text.heroContactButton}
               </a>
             )}
             {profile.resume && (
               <a href={profile.resume} target="_blank" rel="noreferrer" className="btn-ghost">
                 <Download className="h-4 w-4" />
-                Download CV
+                {text.heroResumeButton}
               </a>
             )}
           </motion.div>
@@ -151,7 +151,7 @@ export function Hero() {
           <Suspense
             fallback={
               <div className="grid h-full w-full place-items-center text-sm text-muted">
-                Loading 3D scene…
+                {text.heroSceneLoading}
               </div>
             }
           >
@@ -164,7 +164,7 @@ export function Hero() {
         href="#about"
         className="absolute bottom-6 left-1/2 -translate-x-1/2 font-mono text-[10px] uppercase tracking-[0.3em] text-muted transition hover:text-cyan-300"
       >
-        ↓ Scroll
+        {text.heroScrollHint}
       </a>
     </section>
   );

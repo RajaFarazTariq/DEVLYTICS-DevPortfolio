@@ -1,6 +1,7 @@
 import projectsContent from '@/content/projects.json';
 
-export type ProjectCategory = 'Web Development' | 'Data Analytics' | 'AI / ML';
+/** One of the categories managed in /admin (settings.json → projectCategories). */
+export type ProjectCategory = string;
 
 export type Project = {
   id: string;

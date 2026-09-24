@@ -66,8 +66,8 @@ Edit it from the admin panel (below) or by hand:
 | `about.json` | About bio card, discipline cards, Tools & Technologies marquee |
 | `projects.json` | Projects carousel (`"hidden": true` = unpublished) |
 | `skills.json` | Skill groups and levels |
-| `experience.json` | Experience & education timeline |
-| `settings.json` | Section visibility and section headings |
+| `experience.json` | Experience & education timeline (discipline columns with icon + colour) |
+| `settings.json` | Section visibility, headings and menu labels; brand name; page title & search description; contact form key; every button/label/message; project categories |
 
 ---
 
@@ -81,10 +81,12 @@ loads on the public site, and it only changes content — the public design stay
 | Dashboard | Counts (published/hidden projects, skills, experience, education), draft status, site status, recent content commits |
 | Profile & Contact | Name, tagline, rotating roles, hero summary, email/phone/location, stats, social links (GitHub, LinkedIn, Instagram, X, YouTube, Facebook, Dribbble, Behance, Medium, website — empty = hidden) |
 | About | Bio heading and paragraphs, discipline cards (icon, colour, text), marquee chips |
-| Projects | Add, edit, duplicate, delete, drag to reorder, publish/hide, search & filter, upload or reuse images |
+| Projects | Add, edit, duplicate, delete, drag to reorder, publish/hide, search & filter, upload or reuse images, manage categories (renames carry over to projects) |
 | Skills | Groups with icon and colour, skills with levels, reorder |
-| Experience & Education | Add, edit, delete, reorder, start/end/current period builder, filter by type |
-| Sections | Show/hide About, Skills, Projects, Experience, Contact; edit each section's heading |
+| Experience & Education | Add, edit, delete, reorder, start/end/current period builder, filter by type, discipline columns with their own icon and colour |
+| Sections | Show/hide About, Skills, Projects, Experience, Contact; edit each section's heading and menu label |
+| Site & SEO | Brand name and logo letter, page title and search description (written into `index.html` at build time), Web3Forms contact key and sender name |
+| Site text | Every button, label, placeholder and message on the site (navigation, loading screen, hero, carousel, contact form, footer) |
 | Media | Upload, search, delete unused images (images in use are protected) |
 | Resume / CV | Upload PDFs, set the active one, view/download, remove, delete. An active resume adds a "Download CV" button to the hero |
 

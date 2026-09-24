@@ -5,7 +5,7 @@ import { profile } from '@/data/profile';
 import { socialLinks } from '@/data/socials';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { SectionHeading, headingProps } from '@/components/ui/SectionHeading';
-import { sections } from '@/data/settings';
+import { fillText, sections, site, text } from '@/data/settings';
 import { Reveal } from '@/components/ui/Reveal';
 
 type Status = 'idle' | 'sending' | 'sent' | 'error';
@@ -20,18 +20,18 @@ type InfoItem = {
 const infoItems: InfoItem[] = [
   {
     icon: Mail,
-    label: 'Email',
+    label: text.contactEmailLabel,
     value: profile.email,
     href: profile.socials.email || `mailto:${profile.email}`,
   },
   {
     icon: MapPin,
-    label: 'Location',
+    label: text.contactLocationLabel,
     value: profile.location,
   },
   {
     icon: Phone,
-    label: 'Phone',
+    label: text.contactPhoneLabel,
     value: profile.phone,
     href: `tel:${profile.phone.replace(/\s/g, '')}`,
   },
@@ -56,13 +56,11 @@ export function Contact() {
       });
       if (!res.ok) throw new Error('Request failed');
       setStatus('sent');
-      setMessage('Message sent — I’ll reply soon.');
+      setMessage(text.formSuccess);
       form.reset();
     } catch {
       setStatus('error');
-      setMessage(
-        'Something went wrong — please email me directly at ' + profile.email,
-      );
+      setMessage(fillText(text.formError, { email: profile.email }));
     }
   };
 
@@ -130,9 +128,9 @@ export function Contact() {
                 <input
                   type="hidden"
                   name="access_key"
-                  value="8f246b3b-eed4-4e6c-924f-799660d38022"
+                  value={site.contactFormKey}
                 />
-                <input type="hidden" name="from_name" value="Devlytics" />
+                <input type="hidden" name="from_name" value={site.contactFormFromName} />
                 <input
                   type="checkbox"
                   name="botcheck"
@@ -148,13 +146,13 @@ export function Contact() {
                       className="mb-2 block text-xs uppercase tracking-[0.18em] text-muted"
                       htmlFor="name"
                     >
-                      Name
+                      {text.formNameLabel}
                     </label>
                     <input
                       id="name"
                       name="name"
                       required
-                      placeholder="Your name"
+                      placeholder={text.formNamePlaceholder}
                       className="input-field"
                     />
                   </div>
@@ -163,14 +161,14 @@ export function Contact() {
                       className="mb-2 block text-xs uppercase tracking-[0.18em] text-muted"
                       htmlFor="email"
                     >
-                      Email
+                      {text.formEmailLabel}
                     </label>
                     <input
                       id="email"
                       name="email"
                       type="email"
                       required
-                      placeholder="you@example.com"
+                      placeholder={text.formEmailPlaceholder}
                       className="input-field"
                     />
                   </div>
@@ -181,12 +179,12 @@ export function Contact() {
                     className="mb-2 block text-xs uppercase tracking-[0.18em] text-muted"
                     htmlFor="subject"
                   >
-                    Subject
+                    {text.formSubjectLabel}
                   </label>
                   <input
                     id="subject"
                     name="subject"
-                    placeholder="What's this about?"
+                    placeholder={text.formSubjectPlaceholder}
                     className="input-field"
                   />
                 </div>
@@ -196,14 +194,14 @@ export function Contact() {
                     className="mb-2 block text-xs uppercase tracking-[0.18em] text-muted"
                     htmlFor="message"
                   >
-                    Message
+                    {text.formMessageLabel}
                   </label>
                   <textarea
                     id="message"
                     name="message"
                     rows={5}
                     required
-                    placeholder="Tell me about your project…"
+                    placeholder={text.formMessagePlaceholder}
                     className="input-field resize-none"
                   />
                 </div>
@@ -214,7 +212,7 @@ export function Contact() {
                   disabled={status === 'sending'}
                   className="btn-primary w-full disabled:opacity-70"
                 >
-                  {status === 'sending' ? 'Sending…' : 'Send Message'}
+                  {status === 'sending' ? text.formSending : text.formSubmit}
                   <Send className="h-4 w-4" />
                 </motion.button>
 

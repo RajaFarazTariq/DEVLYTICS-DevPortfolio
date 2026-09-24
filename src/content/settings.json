@@ -2,6 +2,7 @@
   "sections": {
     "about": {
       "visible": true,
+      "navLabel": "About",
       "eyebrow": "01 — Introduction",
       "title": "About",
       "highlight": "Me",
@@ -9,6 +10,7 @@
     },
     "skills": {
       "visible": true,
+      "navLabel": "Skills",
       "eyebrow": "02 — Capabilities",
       "title": "Skills",
       "highlight": "Stack",
@@ -16,6 +18,7 @@
     },
     "projects": {
       "visible": true,
+      "navLabel": "Projects",
       "eyebrow": "03 — Featured Work",
       "title": "Selected",
       "highlight": "Projects",
@@ -23,6 +26,7 @@
     },
     "experience": {
       "visible": true,
+      "navLabel": "Experience",
       "eyebrow": "04 — Journey",
       "title": "Experience &",
       "highlight": "Education",
@@ -30,10 +34,60 @@
     },
     "contact": {
       "visible": true,
+      "navLabel": "Contact",
       "eyebrow": "05 — Get In Touch",
       "title": "Let's",
       "highlight": "connect",
       "subtitle": "Have a project in mind, a role to discuss, or just want to say hi? My inbox is open."
     }
-  }
+  },
+  "site": {
+    "title": "Devlytics · Raja Faraz Tariq",
+    "description": "Devlytics — Where Development Meets Intelligence. Full-stack engineer and data analyst building scalable web apps, AI systems, and dashboards.",
+    "brandHighlight": "Dev",
+    "brandRest": "lytics",
+    "logoLetter": "D",
+    "contactFormKey": "8f246b3b-eed4-4e6c-924f-799660d38022",
+    "contactFormFromName": "Devlytics"
+  },
+  "text": {
+    "navHome": "Home",
+    "navContactButton": "Contact",
+    "loadingTagline": "Initializing systems",
+    "loadingLabel": "Loading",
+    "heroProjectsButton": "View Projects",
+    "heroContactButton": "Contact Me",
+    "heroResumeButton": "Download CV",
+    "heroScrollHint": "↓ Scroll",
+    "heroSceneLoading": "Loading 3D scene…",
+    "projectsCodeButton": "Code",
+    "projectsDemoButton": "Live Demo",
+    "projectsAutoRotating": "Auto-rotating",
+    "projectsPaused": "Paused",
+    "projectsPlay": "Play",
+    "projectsPause": "Pause",
+    "contactEmailLabel": "Email",
+    "contactLocationLabel": "Location",
+    "contactPhoneLabel": "Phone",
+    "formNameLabel": "Name",
+    "formNamePlaceholder": "Your name",
+    "formEmailLabel": "Email",
+    "formEmailPlaceholder": "you@example.com",
+    "formSubjectLabel": "Subject",
+    "formSubjectPlaceholder": "What's this about?",
+    "formMessageLabel": "Message",
+    "formMessagePlaceholder": "Tell me about your project…",
+    "formSubmit": "Send Message",
+    "formSending": "Sending…",
+    "formSuccess": "Message sent — I’ll reply soon.",
+    "formError": "Something went wrong — please email me directly at {email}",
+    "footerCredit": "Designed and engineered by {name}.",
+    "footerCopyright": "© {year} Devlytics · All rights reserved.",
+    "footerBackToTop": "Back to top"
+  },
+  "projectCategories": [
+    "Web Development",
+    "Data Analytics",
+    "AI / ML"
+  ]
 }

@@ -1,45 +1,9 @@
-import type { ComponentType, SVGProps } from 'react';
 import { motion } from 'framer-motion';
-import {
-  BarChart3,
-  BrainCircuit,
-  Briefcase,
-  Code2,
-  GraduationCap,
-  MapPin,
-} from 'lucide-react';
-import { experience, type PillarKey } from '@/data/experience';
+import { Briefcase, GraduationCap, MapPin } from 'lucide-react';
+import { experience, pillarIcon, pillarStyle, pillarStyles } from '@/data/experience';
+import { skillIcons } from '@/data/skillIcons';
 import { SectionHeading, headingProps } from '@/components/ui/SectionHeading';
 import { sections } from '@/data/settings';
-
-type IconType = ComponentType<SVGProps<SVGSVGElement> & { className?: string }>;
-
-const PILLAR_META: Record<
-  PillarKey,
-  { icon: IconType; text: string; bullet: string; tint: string; border: string }
-> = {
-  web: {
-    icon: Code2,
-    text: 'text-cyan-300',
-    bullet: 'bg-cyan-400',
-    tint: 'from-cyan-500/12 via-transparent to-transparent',
-    border: 'border-cyan-400/20',
-  },
-  data: {
-    icon: BarChart3,
-    text: 'text-violet-300',
-    bullet: 'bg-violet-400',
-    tint: 'from-violet-500/12 via-transparent to-transparent',
-    border: 'border-violet-400/20',
-  },
-  ai: {
-    icon: BrainCircuit,
-    text: 'text-pink-300',
-    bullet: 'bg-pink-400',
-    tint: 'from-pink-500/12 via-transparent to-transparent',
-    border: 'border-pink-400/20',
-  },
-};
 
 const fadeUp = {
   hidden: { opacity: 0, y: 24 },
@@ -107,8 +71,9 @@ export function Experience() {
                 {item.pillars && (
                   <div className="mt-7 grid gap-4 md:grid-cols-3">
                     {item.pillars.map((p) => {
-                      const meta = PILLAR_META[p.key];
-                      const Icon = meta.icon;
+                      // Colours and icon are managed per column in /admin.
+                      const meta = pillarStyles[pillarStyle(p)] ?? pillarStyles.cyan;
+                      const Icon = skillIcons[pillarIcon(p)] ?? skillIcons.Code2;
                       return (
                         <div
                           key={p.key}

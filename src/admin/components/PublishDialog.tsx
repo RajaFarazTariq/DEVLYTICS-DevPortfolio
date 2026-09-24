@@ -11,7 +11,7 @@ const SECTION_LABELS: Record<ContentKey, string> = {
   skills: 'Skills',
   experience: 'Experience & education',
   about: 'About section',
-  settings: 'Section settings',
+  settings: 'Site settings',
 };
 
 export function PublishDialog({

@@ -1,9 +1,8 @@
 import { useEffect, useState, type ChangeEvent } from 'react';
-import { Copy, ExternalLink, Eye, EyeOff, FolderKanban, Github, GripVertical, Images, Loader2, Pencil, Plus, SearchX, Upload } from 'lucide-react';
+import { Copy, ExternalLink, Eye, EyeOff, FolderKanban, Github, GripVertical, Images, Loader2, Pencil, Plus, SearchX, Tags, Upload } from 'lucide-react';
 import type { Project } from '@/data/projects';
 import {
   PROJECT_ACCENTS,
-  PROJECT_CATEGORIES,
   duplicateProject,
   emptyProject,
   uniqueSlug,
@@ -42,9 +41,14 @@ export function ProjectsSection({
   media,
   confirm,
   focus,
+  categories,
+  onCategoriesChange,
 }: {
   projects: Project[];
   onChange: (projects: Project[]) => void;
+  categories: string[];
+  /** Saves a new category list together with projects updated for renamed categories. */
+  onCategoriesChange: (categories: string[], projects: Project[]) => void;
   issues: Issue[];
   ctx: ValidationContext;
   media: MediaApi;
@@ -57,7 +61,7 @@ export function ProjectsSection({
     confirm,
     validate: (item, index, others) => [
       ...idIssues('projects', item.id, others.map((o) => o.id), index, 'Project'),
-      ...validateProject(item, index, ctx),
+      ...validateProject(item, index, ctx, categories),
     ],
   });
 
@@ -68,7 +72,7 @@ export function ProjectsSection({
   }, [focus?.nonce]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const addProject = () =>
-    editor.open(null, emptyProject(uniqueSlug('new-project', projects.map((p) => p.id))));
+    editor.open(null, emptyProject(uniqueSlug('new-project', projects.map((p) => p.id)), categories[0]));
 
   const remove = (i: number) =>
     confirm({
@@ -84,6 +88,7 @@ export function ProjectsSection({
   const [query, setQuery] = useState('');
   const [status, setStatus] = useState<'all' | 'published' | 'hidden'>('all');
   const [category, setCategory] = useState<'all' | Project['category']>('all');
+  const [categoriesOpen, setCategoriesOpen] = useState(false);
   const filtering = query.trim() !== '' || status !== 'all' || category !== 'all';
   const q = query.trim().toLowerCase();
   const visible = projects
@@ -116,9 +121,14 @@ export function ProjectsSection({
           </Badge>
         }
         actions={
-          <button type="button" className="adm-btn-primary" onClick={addProject}>
-            <Plus className="h-4 w-4" /> Add project
-          </button>
+          <>
+            <button type="button" className="adm-btn-secondary" onClick={() => setCategoriesOpen(true)}>
+              <Tags className="h-4 w-4" /> Categories
+            </button>
+            <button type="button" className="adm-btn-primary" onClick={addProject}>
+              <Plus className="h-4 w-4" /> Add project
+            </button>
+          </>
         }
       />
 
@@ -147,7 +157,7 @@ export function ProjectsSection({
             aria-label="Filter by category"
           >
             <option value="all" className="bg-ink-900">All categories</option>
-            {PROJECT_CATEGORIES.map((c) => (
+            {categories.map((c) => (
               <option key={c} value={c} className="bg-ink-900">
                 {c}
               </option>
@@ -292,9 +302,25 @@ export function ProjectsSection({
             isNew={editor.isNew}
             otherIds={projects.map((p) => p.id)}
             media={media}
+            categories={categories}
           />
         )}
       </Drawer>
+
+      {categoriesOpen && (
+        <CategoriesDialog
+          categories={categories}
+          projects={projects}
+          onClose={() => setCategoriesOpen(false)}
+          onSave={(next, renames) => {
+            onCategoriesChange(
+              next,
+              projects.map((p) => (renames[p.category] ? { ...p, category: renames[p.category] } : p)),
+            );
+            setCategoriesOpen(false);
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -307,6 +333,7 @@ function ProjectForm({
   isNew,
   otherIds,
   media,
+  categories,
 }: {
   value: Project;
   onChange: (p: Project) => void;
@@ -315,6 +342,7 @@ function ProjectForm({
   isNew: boolean;
   otherIds: string[];
   media: MediaApi;
+  categories: string[];
 }) {
   const [idTouched, setIdTouched] = useState(!isNew);
   const [uploading, setUploading] = useState(false);
@@ -372,7 +400,10 @@ function ProjectForm({
           <SelectField
             label="Category"
             value={value.category}
-            options={PROJECT_CATEGORIES.map((c) => ({ value: c, label: c }))}
+            options={[...new Set([...(categories.includes(value.category) ? [] : [value.category]), ...categories])].map((c) => ({
+              value: c,
+              label: categories.includes(c) ? c : `${c || 'Choose…'} (not in list)`,
+            }))}
             onChange={(v) => set('category', v)}
             error={errors.category}
           />
@@ -469,5 +500,89 @@ function ProjectForm({
         </div>
       </Modal>
     </>
+  );
+}
+
+type CategoryRow = { original: string | null; name: string };
+
+/** Add, rename, reorder and delete project categories. Renames carry over to the projects using them. */
+function CategoriesDialog({
+  categories,
+  projects,
+  onClose,
+  onSave,
+}: {
+  categories: string[];
+  projects: Project[];
+  onClose: () => void;
+  onSave: (categories: string[], renames: Record<string, string>) => void;
+}) {
+  const [rows, setRows] = useState<CategoryRow[]>(() => categories.map((c) => ({ original: c, name: c })));
+  const usage = (name: string | null) => (name === null ? 0 : projects.filter((p) => p.category === name).length);
+  const names = rows.map((r) => r.name.trim());
+  const problems = [
+    ...(names.filter(Boolean).length === 0 ? ['Keep at least one category.'] : []),
+    ...(names.some((n) => !n) ? ['Every category needs a name.'] : []),
+    ...(names.some((n) => n.length > 40) ? ['Category names can be at most 40 characters.'] : []),
+    ...(new Set(names).size !== names.length ? ['Two categories have the same name.'] : []),
+  ];
+
+  const save = () => {
+    if (problems.length) return;
+    const renames: Record<string, string> = {};
+    for (const r of rows) if (r.original !== null && r.original !== r.name.trim()) renames[r.original] = r.name.trim();
+    onSave(names, renames);
+  };
+
+  return (
+    <Modal
+      open
+      wide
+      title="Project categories"
+      onClose={onClose}
+      footer={
+        <>
+          <button type="button" className="adm-btn-secondary" onClick={onClose}>
+            Cancel
+          </button>
+          <button type="button" className="adm-btn-primary" onClick={save} disabled={problems.length > 0}>
+            Apply
+          </button>
+        </>
+      }
+    >
+      <div className="space-y-4">
+        <p className="text-xs text-ink-400">Shown as the label on each project image. Renaming a category updates every project that uses it.</p>
+        {problems.length > 0 && <IssueList messages={problems} />}
+        <div className="space-y-2">
+          {rows.map((r, i) => {
+            const used = usage(r.original);
+            return (
+              <div key={i} className="flex items-center gap-2">
+                <input
+                  value={r.name}
+                  onChange={(e) => setRows(rows.map((x, k) => (k === i ? { ...x, name: e.target.value } : x)))}
+                  placeholder="Category name"
+                  aria-label={`Category ${i + 1}`}
+                  className="adm-input py-2"
+                />
+                <span className="w-20 shrink-0 text-right font-mono text-[11px] text-ink-500">{used} project{used === 1 ? '' : 's'}</span>
+                <ReorderButtons
+                  index={i}
+                  length={rows.length}
+                  label={r.name || `category ${i + 1}`}
+                  onMove={(a, b) => setRows(moveItem(rows, a, b))}
+                  onDelete={used === 0 ? () => setRows(rows.filter((_, k) => k !== i)) : undefined}
+                />
+              </div>
+            );
+          })}
+        </div>
+        <p className="text-xs text-ink-500">Categories still used by a project can't be deleted — move those projects first.</p>
+        <button type="button" className="adm-btn-secondary adm-btn-sm border-dashed" onClick={() => setRows([...rows, { original: null, name: '' }])}>
+          <Plus className="h-3.5 w-3.5" /> Add category
+        </button>
+      </div>
+    </Modal>
   );
 }
